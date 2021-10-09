@@ -37,6 +37,7 @@ void cmdClearEEPROM(void);
 void cmdSearchSensor();
 void cmdgetsetPosition(void);
 void cmdStationPosition(void);
+void cmdOffestStopPin();
 
 void UserCommand_Task(void);
 void UserCommand_Timer(void);

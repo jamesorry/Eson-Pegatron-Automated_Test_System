@@ -4,7 +4,15 @@
 #include "Arduino.h"
 #include "SoftwareSerial.h"
 
-#define	VERSTR	"2021090801"
+#define	VERSTR	"2021100901"
+
+#define DEBUG(...) Serial.println(__VA_ARGS__); \
+                   Serial.print(" @ [LINE]:     "); \
+                   Serial.println(__LINE__); \
+                   Serial.print(" @ [FUNCTION]: "); \
+                   Serial.println(__func__);
+//                   Serial.print(" @ [SRC]:      "); \
+//                   Serial.println(__FILE__); \
 
 #define setbit(value,x) (value |=(1<<x))
 #define getbit(value,x) ((value>>x)&1)

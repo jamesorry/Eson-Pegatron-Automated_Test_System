@@ -3,7 +3,7 @@
 
 #include "Arduino.h"
 
-#define	VERSTR	"2021091401"
+#define	VERSTR	"2021100601"
 #define VENDOR	"LienHong"
 //調光控制板*8
 
@@ -29,7 +29,10 @@
 static const uint8_t ADC_OutputPin[] = {A0, A1, A2, A3};
 static const uint8_t ADC_InputPin[] = {A4, A5, A6, A7};
 
-#define OUT01_ONOFF 0
+#define OUT00       0
+#define OUT01       1
+#define OUT02       2
+#define OUT03       3
 
 #define LUX_10      0
 #define LUX_20      1
@@ -61,7 +64,8 @@ typedef struct _MainDataStruct_
 	char   Vendor[10];
     uint8_t HMI_ID;
     uint8_t Voltage_Last;  // 上次的Voltage輸出值(0~100%)
-    bool    Output_Light_Last = false;
+    bool    Output_Last_HighLow[4] = {0, 0, 0, 0}; //目前還無法修改初始數值    
+    uint16_t CheckVersion;
 }MainDataStruct;
 
 

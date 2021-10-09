@@ -246,7 +246,10 @@ int StepperMotor::getVectNum()
 {
 	return Vect_Num;
 }
-
+uint8_t StepperMotor::getSensorPinMode()
+{
+    return Sensor[0][this->Direction].Mode;
+}
 void StepperMotor::setStopPin(int pin, int hl, uint8_t toggletimes)
 {
 	setSensorPin(SENSOR_PIN_TOGGLE, pin, hl, pin, hl, SENSOR_PIN_MODE_STOP | SENSOR_PIN_MODE_ONCE, toggletimes);
@@ -1695,7 +1698,7 @@ void StepperMotor::TimerProcess(int vect_num)
 					if(Sensor[i][this->Direction].PreHL != hl)
 					{
 						Sensor[i][this->Direction].ToggleCnt ++;
-#if 0//STEPPER_MOTOR_DEBUG
+#if STEPPER_MOTOR_DEBUG
 						cmd_port->print("#");
 #endif
 					}

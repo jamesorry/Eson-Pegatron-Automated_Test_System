@@ -149,6 +149,7 @@ private:
 	StepperMotor(int pulsepin, int dirpin, unsigned long resolution);
 	StepperMotor(int pulsepin, int dirpin, unsigned long resolution, unsigned long frequence);
 
+    uint8_t getSensorPinMode();
 	void setSensorPin(int index, int pin, int hl, int ccwpin, int ccwhl, uint8_t mode, uint8_t toggletimes = 0, int range = 0);
 	void setStopPin(int pin, int hl, uint8_t toggletimes);
 	void setStopPin(int pin, int hl, int ccwpin, int ccwhl, uint8_t toggletimes);

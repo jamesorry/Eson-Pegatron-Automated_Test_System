@@ -69,6 +69,20 @@ void MainProcess_ReCheckEEPROMValue()
 		maindata.HMI_ID = 0;
 		runtimedata.UpdateEEPROM = true;
 	}
+    if(maindata.OffsetDistanceOfStopPin < 0){
+       maindata.OffsetDistanceOfStopPin = 0;
+       runtimedata.UpdateEEPROM = true;
+    }
+    if(maindata.TargetStation < 0 || maindata.TargetStation > 3){
+       maindata.TargetStation = 2;
+       runtimedata.UpdateEEPROM = true;
+    }
+    if(maindata.CheckVersion != 100601){
+        maindata.CheckVersion = 100601;
+        for(uint8_t i=0; i<8; i++)
+            maindata.Output_Last_HighLow[i] = 0;
+        runtimedata.UpdateEEPROM = true;
+    }
 }
 
 
@@ -79,10 +93,11 @@ void MainProcess_Init()
 
 	MainProcess_ReCheckEEPROMValue();
 	runtimedata.RunMode = RUN_MODE_STOP;
-
+    runtimedata.VR_RunMode = VR_RUN_MODE_STOP;
 	for(i=0; i<WORKINDEX_TOTAL; i++)
-		runtimedata.Workindex[i]  = 0xF0;
-
+		runtimedata.Workindex[i]  = 0;
+    for(i=0; i<WORKINDEX_TOTAL; i++)
+            runtimedata.preWorkindex[i] = -1;
 	runtimedata.inPosition = 0xFF;
 	
 	runtimedata.ServoPosition = 0x00;
@@ -134,17 +149,78 @@ void MainProcess_Init()
 			extio[j].pinMode(i+8,INPUT);	 // Button i/p to GND
 			extio[j].pullUp(i+8,HIGH);	 // Puled high to ~100k
 		}
-    Motor[MOTOR_SERVO] = new StepperMotor(2, A8, 10000, 5000);
-//	Motor[0] = new StepperMotor(2, A8, 10000, 5000);
-//	Motor[1] = new StepperMotor(7, A11, 10000, 5000);
-//	Motor[2] = new StepperMotor(12, A13, 10000, 5000);
+        
+    
+    Motor[MOTOR_SERVO] = new StepperMotor(2, A8, 10000, 1000);    
+    Motor[MOTOR_VR] = new StepperMotor(7, A11, 10000, 1000);
 
-//	Motor[MOTOR_SERVO]->setLimitPin(InputPin[0], LOW, InputPin[1], LOW);
+	Motor[MOTOR_SERVO]->setLimitPin(InputPin[IN01_FrontLimitPin], LOW, InputPin[IN05_BackLimitPin], LOW);
+	Motor[MOTOR_VR]->setLimitPin(InputPin[IN06_VR_FrontLimitPin], LOW, InputPin[IN07_VR_BackLimitPin], LOW);
 }
 
 void MainProcess_Task()
 {
+    VR_Contorl();
     LightBox();
+}
+void VR_Contorl()
+{
+    switch(runtimedata.VR_RunMode)
+    {
+        case VR_RUN_MODE_STOP:
+            if(Motor[MOTOR_SERVO]->getState() != MOTOR_STATE_STOP){
+                Motor[MOTOR_SERVO]->Stop();
+                runtimedata.VR_RunMode = VR_RUN_MODE_NORMAL;
+            }
+            break;
+        case VR_RUN_MODE_INIT:
+            if(VR_Init()){
+                runtimedata.VR_RunMode = VR_RUN_MODE_STOP;
+                for(int i=0; i<8; i++)
+                    digitalWrite(OutputPin[i],maindata.Output_Last_HighLow[i]);
+            }
+            break;
+        case VR_RUN_MODE_NORMAL:
+            
+            break;
+    }
+}
+
+bool VR_Init()
+{
+    bool isfinish = false;
+#if MAIN_PROCESS_DEBUG
+    if(runtimedata.preWorkindex[WORKINDEX_VR_INITIAL] != runtimedata.Workindex[WORKINDEX_VR_INITIAL])
+    {
+        runtimedata.preWorkindex[WORKINDEX_VR_INITIAL] = runtimedata.Workindex[WORKINDEX_VR_INITIAL];
+        cmd_port->println("WORKINDEX_VR_INITIAL: " + String(runtimedata.Workindex[WORKINDEX_VR_INITIAL]));
+    }
+#endif
+    switch(runtimedata.Workindex[WORKINDEX_VR_INITIAL])
+    {
+        case 0:
+            Motor[MOTOR_VR]->setStopPin(InputPin[IN06_VR_FrontLimitPin], LOW, 0);
+            Motor[MOTOR_VR]->Speed(-SPEED_SERVO_SEARCH);
+            runtimedata.Workindex[WORKINDEX_VR_INITIAL] += 10;
+            break;
+        case 10:
+            if(Motor[MOTOR_VR]->getState() == MOTOR_STATE_STOP){
+                Motor[MOTOR_VR]->setPosition(0);
+            }
+            runtimedata.Workindex[WORKINDEX_VR_INITIAL] += 10;
+            break;
+        case 20:
+            Motor[MOTOR_VR]->MoveTo(maindata.VR_HomeOffset);
+            runtimedata.Workindex[WORKINDEX_VR_INITIAL] = 0xE0;
+            break;
+        case 0xE0:
+            if(Motor[MOTOR_VR]->getState() == MOTOR_STATE_STOP){
+                runtimedata.Workindex[WORKINDEX_VR_INITIAL] = 0xF0;
+                isfinish = true;
+            }
+            break;
+    }
+    return isfinish;
 }
 
 void LightBox()
@@ -159,30 +235,35 @@ void LightBox()
                 runtimedata.RunMode = RUN_MODE_EMERGENCY;
             }
             break;
-		case RUN_MODE_GO_STATION:
-			if(LightBoxMoveToStation())
+		case RUN_MODE_INIT: //重啟後，需要先回到上次狀態
+			if(RestartInit())
 				runtimedata.RunMode = RUN_MODE_STOP;
 			break;
 		case RUN_MODE_SEARCH_SENSOR:
 			if(LightBoxSearchSensor())
 				runtimedata.RunMode = RUN_MODE_STOP;
 			break;
-		case RUN_MODE_DEBUG:
-            if(Demo_debug())
-                runtimedata.RunMode = RUN_MODE_STOP;
-			break;
+//		case RUN_MODE_DEBUG:
+//            if(Demo_debug())
+//                runtimedata.RunMode = RUN_MODE_STOP;
+//			break;
         case RUN_MODE_EMERGENCY:
             if(EmergencyTimeCnt > 1000){
                 EmergencyTimeCnt = 0;
                 hmicmd->Indication_Emergency();
             }
+            if(digitalRead(InputPin[IN00_EmergencyPin])){
+                runtimedata.IndicationEmergency = false;
+                runtimedata.RunMode = RUN_MODE_STOP;
+            }
             break;
 		default:
 			runtimedata.RunMode = RUN_MODE_NORMAL;
 			break;
-            
 	}
 }
+
+#if 0
 bool Demo_debug()
 {
 	bool isfinish = false;
@@ -220,95 +301,64 @@ bool Demo_debug()
     }
     return isfinish;
 }
+#endif
 
-bool LightBoxMoveToStation()
+bool RestartInit()
 {
-	bool isfinish = false;
-		
+    bool isfinish = false;
 #if MAIN_PROCESS_DEBUG
-	if(runtimedata.preWorkindex[WORKINDEX_MOVE_TO_STATION] != runtimedata.Workindex[WORKINDEX_MOVE_TO_STATION])
-	{
-		runtimedata.preWorkindex[WORKINDEX_MOVE_TO_STATION] = runtimedata.Workindex[WORKINDEX_MOVE_TO_STATION];
-		cmd_port->println("WORKINDEX_MOVE_TO_STATION: " + String(runtimedata.Workindex[WORKINDEX_MOVE_TO_STATION]));
-	}
+        if(runtimedata.preWorkindex[WORKINDEX_INITIAL] != runtimedata.Workindex[WORKINDEX_INITIAL])
+        {
+            runtimedata.preWorkindex[WORKINDEX_INITIAL] = runtimedata.Workindex[WORKINDEX_INITIAL];
+            cmd_port->println("WORKINDEX_INITIAL: " + String(runtimedata.Workindex[WORKINDEX_INITIAL]));
+        }
 #endif
-	switch(runtimedata.Workindex[WORKINDEX_MOVE_TO_STATION])
-	{
-		case 0:
-#if MAIN_PROCESS_DEBUG
-			cmd_port->println("Move to Station " + String(runtimedata.TargetStation) + " Position:" + String(maindata.StationPosition[runtimedata.TargetStation]));
-#endif
-			if((runtimedata.TargetStation >= STATION_TOTAL) || (runtimedata.TargetStation <= 0) 
-				|| (runtimedata.Station >= STATION_TOTAL)  || (runtimedata.Station <= 0))
-			{
-				runtimedata.Workindex[WORKINDEX_MOVE_TO_STATION] = 0xF0;
-				isfinish = true;
-			}
-			else
-			{
-				if((runtimedata.TargetStation == 3) && (runtimedata.Station == 1))
-					runtimedata.TargetStation = 3;
-				else if(runtimedata.TargetStation > runtimedata.Station)
-					runtimedata.TargetStation = runtimedata.Station + 1;
-				else if((runtimedata.TargetStation == 1) && (runtimedata.Station == 3))
-					runtimedata.TargetStation = 1;
-				else if(runtimedata.TargetStation < runtimedata.Station)
-					runtimedata.TargetStation = runtimedata.Station - 1;
-				if(runtimedata.TargetStation < 1)
-					runtimedata.TargetStation = 3;
-				else if (runtimedata.TargetStation > 3)
-					runtimedata.TargetStation = 1;
-					
-#if MAIN_PROCESS_DEBUG
-				cmd_port->println("Target Station: " + String(runtimedata.TargetStation) + ", & 0x01:" + String(runtimedata.TargetStation & 0x01));
-#endif
-				runtimedata.Workindex[WORKINDEX_MOVE_TO_STATION] += 10;
-			}
-				
-			break;
-		case 10:
-			Motor[MOTOR_SERVO]->setFrequenceStartup(1000);
-			Motor[MOTOR_SERVO]->setAccelerateTime(TIME_FLATCAR_ACCELERATE);
-			Motor[MOTOR_SERVO]->setFrequence(maindata.MotorSpeed[MOTOR_SERVO]);
-			Motor[MOTOR_SERVO]->setStopRangePin(InputPin[IN02_IN_POSITION], HIGH, 0, 50);	//Targetposition +/- 50mm
-			Motor[MOTOR_SERVO]->MoveToStopPin(maindata.StationPosition[runtimedata.TargetStation]);
-			runtimedata.Workindex[WORKINDEX_MOVE_TO_STATION] += 10;
-			break;
-		case 20:
+    switch(runtimedata.Workindex[WORKINDEX_INITIAL])
+    {
+        case 0:
+            Motor[MOTOR_SERVO]->setStopPin(InputPin[IN01_FrontLimitPin], LOW, 0);
+            Motor[MOTOR_SERVO]->Speed(-SPEED_SERVO_SEARCH);
+            runtimedata.Workindex[WORKINDEX_INITIAL] += 10;
+            break;
+        case 10:
 			if(Motor[MOTOR_SERVO]->getState() == MOTOR_STATE_STOP)
-			{	//shift 3.5mm
-				int steps = 0;
-				if(Motor[MOTOR_SERVO]->getDirection() == MOTOR_CW)
-					steps = maindata.OffsetDistanceOfStopPin;
-				else
-					steps = -maindata.OffsetDistanceOfStopPin;
-				if(Motor[MOTOR_SERVO]->getAccelerateTime() == 0)
-					Motor[MOTOR_SERVO]->setAccelerateTime(200);
-				Motor[MOTOR_SERVO]->Steps(steps);
-				runtimedata.Workindex[WORKINDEX_MOVE_TO_STATION] = 0xE0;
-			}
-		case 0xE0:
+                runtimedata.Workindex[WORKINDEX_INITIAL] += 10;
+            break;
+        case 20:
+            Motor[MOTOR_SERVO]->setStopPin(InputPin[maindata.TargetStation+1], HIGH, 0);
+            Motor[MOTOR_SERVO]->Speed(SPEED_SERVO_SEARCH);
+            runtimedata.Workindex[WORKINDEX_INITIAL] += 10;
+            break;
+        case 30:
 			if(Motor[MOTOR_SERVO]->getState() == MOTOR_STATE_STOP)
-			{
-				if(Motor[MOTOR_SERVO]->getPosition() == maindata.StationPosition[runtimedata.TargetStation])
-					runtimedata.Station = runtimedata.TargetStation;
-				runtimedata.Workindex[WORKINDEX_MOVE_TO_STATION] = 0xF0;
-				isfinish = true;
-#if MAIN_PROCESS_DEBUG
-				cmd_port->println("Motor to station process stop, Position:" + String(Motor[MOTOR_SERVO]->getPosition()));
-#endif
-			}
-			break;
-		case 0xEF:
-			if(Motor[MOTOR_SERVO]->getLimitPinState() == HIGH)
-				runtimedata.Workindex[WORKINDEX_MOVE_TO_STATION] = 0x00;
-			break;
-	}
-	if(Motor[MOTOR_SERVO]->getLimitPinState() == LOW)
-	{
-		runtimedata.Workindex[WORKINDEX_MOVE_TO_STATION] = 0xEF;
-		isfinish = false;
-	}
+                runtimedata.Workindex[WORKINDEX_INITIAL] += 10;
+            break;
+        case 40:
+            if(Motor[MOTOR_SERVO]->getState() == MOTOR_STATE_STOP)
+            {   //shift ?mm
+                int steps = 0;
+                if(Motor[MOTOR_SERVO]->getDirection() == MOTOR_CW)//正轉
+                    steps = maindata.OffsetDistanceOfStopPin;
+                else
+                    steps = -maindata.OffsetDistanceOfStopPin;
+                if(Motor[MOTOR_SERVO]->getAccelerateTime() == 0)
+                    Motor[MOTOR_SERVO]->setAccelerateTime(200);
+                Motor[MOTOR_SERVO]->Steps(steps, SPEED_SERVO_SEARCH);
+                runtimedata.Workindex[WORKINDEX_INITIAL] = 0xE0;
+            }
+            break;
+        case 0xE0:
+            runtimedata.Workindex[WORKINDEX_INITIAL] = 0xF0;
+            runtimedata.Station = 0;
+            int station = getStationSensor();
+            if((station > 0) && (station < 3))
+            {
+                runtimedata.Station = station;
+                DEBUG(runtimedata.Station);
+            }
+            isfinish = true;
+            break;
+    }
 	return isfinish;
 }
 
@@ -328,20 +378,26 @@ bool LightBoxSearchSensor()
 	switch(runtimedata.Workindex[WORKINDEX_SEARCH_SENSOR])
 	{
 		case 0:
-		
-#if MAIN_PROCESS_DEBUG
-			cmd_port->println("Start flatcar search station sensor.");
-			cmd_port->println("Dir: " + String(runtimedata.SerarchDir));
-#endif
-			
 			searchtoggletimes = 0;
 			searchcnt = 0;
-
+            if(maindata.TargetStation - runtimedata.Station > 0){
+                runtimedata.SerarchPin = maindata.TargetStation+1;
+                runtimedata.SerarchDir = MOTOR_CW;
+            }
+            else{
+                runtimedata.SerarchPin = maindata.TargetStation+1;
+                runtimedata.SerarchDir = MOTOR_CCW;
+            }
+#if MAIN_PROCESS_DEBUG
+            cmd_port->println("Start flatcar search station sensor.");
+            cmd_port->println("Pin: " + String(runtimedata.SerarchPin));
+            cmd_port->println("Dir: " + String(runtimedata.SerarchDir));
+#endif
 			runtimedata.ProcessTimer[WORKINDEX_SEARCH_SENSOR] = millis();
 			runtimedata.Workindex[WORKINDEX_SEARCH_SENSOR] += 10;
 			break;
 		case 10:
-			SearchSensor(runtimedata.SerarchDir, searchtoggletimes);
+			SearchSensor(runtimedata.SerarchPin, runtimedata.SerarchDir, searchtoggletimes);
 			runtimedata.ProcessTimer[WORKINDEX_SEARCH_SENSOR] = millis();
 			runtimedata.Workindex[WORKINDEX_SEARCH_SENSOR] += 10;
 			break;
@@ -350,7 +406,7 @@ bool LightBoxSearchSensor()
 			{
 				if(getStationSensor() != 0)
 					runtimedata.Workindex[WORKINDEX_SEARCH_SENSOR] += 10;
-				else
+				else //沒有在站號上
 				{
 					searchtoggletimes = 2;
 					searchcnt ++;
@@ -360,7 +416,6 @@ bool LightBoxSearchSensor()
 					{
 						runtimedata.Workindex[WORKINDEX_SEARCH_SENSOR] += 10;
 					}
-						
 				}
 			}
 			break;
@@ -369,7 +424,7 @@ bool LightBoxSearchSensor()
 				if(Motor[MOTOR_SERVO]->getState() == MOTOR_STATE_STOP)
 				{	//shift ?mm
 					int steps = 0;
-					if(Motor[MOTOR_SERVO]->getDirection() == MOTOR_CW)
+					if(Motor[MOTOR_SERVO]->getDirection() == MOTOR_CW)//正轉
 						steps = maindata.OffsetDistanceOfStopPin;
 					else
 						steps = -maindata.OffsetDistanceOfStopPin;
@@ -387,9 +442,10 @@ bool LightBoxSearchSensor()
 				int station = getStationSensor();
 				if((station > 0) && (station < 3))
 				{
-					if(runtimedata.Station == STATION_UNKNOW)
-						Motor[MOTOR_SERVO]->setPosition(maindata.StationPosition[station]);
+//					if(runtimedata.Station == STATION_UNKNOW)
+//						Motor[MOTOR_SERVO]->setPosition(maindata.StationPosition[station]);
 					runtimedata.Station = station;
+                    DEBUG(runtimedata.Station);
 				}
 				isfinish = true;
 #if MAIN_PROCESS_DEBUG
@@ -406,15 +462,16 @@ uint8_t getStationSensor()
 {
 	uint8_t station = 0;
 	uint8_t i;
-	
-	station = getInput(IN21_STATION_B1) << 1;
-	station += getInput(IN20_STATION_B0);
+    if(getInput(IN02_Pos_1_Pin)) station = 1;
+    if(getInput(IN03_Pos_2_Pin)) station = 2;
+    if(getInput(IN04_Pos_3_Pin)) station = 3;
+    
 	return station;	
 }
 
-void SearchSensor(int dir, int toggletimes)
+void SearchSensor(int pin, int dir, int toggletimes)
 {
-	int pinindex = IN02_IN_POSITION;
+	int pinindex = pin;
 	uint8_t HL = HIGH;
 
 #if MAIN_PROCESS_DEBUG
@@ -426,33 +483,4 @@ void SearchSensor(int dir, int toggletimes)
 	else
 		Motor[MOTOR_SERVO]->Speed(SPEED_SERVO_SEARCH);
 }
-
-int NextStation(int stationnow)
-{
-	if(stationnow == STATION_UNKNOW)
-		return STATION_UNKNOW;
-	else
-	{
-		stationnow ++;
-		if(stationnow == STATION_TOTAL)
-			return 1;
-		else
-			return stationnow;
-	}
-}
-
-int PreStation(int stationnow)
-{
-	if(stationnow == STATION_UNKNOW)
-		return STATION_UNKNOW;
-	else
-	{
-		stationnow --;
-		if(stationnow == 0)
-			return STATION_TOTAL -1;
-		else
-			return stationnow;
-	}
-}
-
 

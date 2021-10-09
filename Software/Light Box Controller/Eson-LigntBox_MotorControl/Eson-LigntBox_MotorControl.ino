@@ -54,8 +54,8 @@ void loop()
 ISR(TIMER1_COMPA_vect)
 {
     MainProcess_Timer();
-#if 0
-    if(digitalRead(InputPin[IN_EmergencyPin]) && runtimedata.RunMode != RUN_MODE_EMERGENCY){
+#if 1
+    if(!digitalRead(InputPin[IN00_EmergencyPin]) && runtimedata.RunMode != RUN_MODE_EMERGENCY){
         runtimedata.RunMode = RUN_MODE_STOP;
         runtimedata.IndicationEmergency = true;
     }
@@ -66,21 +66,14 @@ ISR(TIMER1_COMPA_vect)
 //for PWM 2
 ISR(TIMER3_COMPB_vect)          // timer compare interrupt service routine
 {
-	Motor[0]->TimerProcess(TIMER3_COMPB_vect_num);
+	Motor[MOTOR_SERVO]->TimerProcess(TIMER3_COMPB_vect_num);
 }
 
 //for PWM 7
 ISR(TIMER4_COMPB_vect)          // timer compare interrupt service routine
 {
-	Motor[1]->TimerProcess(TIMER4_COMPB_vect_num);
+	Motor[MOTOR_VR]->TimerProcess(TIMER4_COMPB_vect_num);
 }
-
-//for PWM 12
-ISR(TIMER1_COMPB_vect)          // timer compare interrupt service routine
-{
-	Motor[2]->TimerProcess(TIMER1_COMPB_vect_num);
-}
-
 void buzzerPlay(int ms)
 {
     pinMode(BUZZ, OUTPUT);

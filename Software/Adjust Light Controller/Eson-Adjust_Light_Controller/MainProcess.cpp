@@ -22,6 +22,12 @@ void MainProcess_ReCheckEEPROMValue()
         maindata.Voltage_Last = 0;
         runtimedata.UpdateEEPROM = true;
     }
+    if(maindata.CheckVersion != 100601){
+        maindata.CheckVersion = 100601;
+        for(uint8_t i=0; i<4; i++)
+            maindata.Output_Last_HighLow[i] = 0;
+        runtimedata.UpdateEEPROM = true;
+    }
 }
 void CheckID()
 {
@@ -43,7 +49,9 @@ void MainProcess_Init()
 	runtimedata.UpdateEEPROM = false;
 	MainProcess_ReCheckEEPROMValue();
     CheckID();
-    digitalWrite(ADC_OutputPin[OUT01_ONOFF], maindata.Output_Light_Last);
+    for(uint8_t i=0; i<4; i++){
+        digitalWrite(ADC_OutputPin[i], maindata.Output_Last_HighLow[i]);
+    }
     SetVoltage(maindata.Voltage_Last);
 }
 
