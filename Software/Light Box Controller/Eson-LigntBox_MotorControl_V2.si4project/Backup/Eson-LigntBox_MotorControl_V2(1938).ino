@@ -46,8 +46,7 @@ void loop()
 ISR(TIMER1_COMPA_vect)
 {
 	UserCommand_Timer();
-    MainProcess_Timer();
-    if(digitalRead(InputPin[IN00_EmergencyPin])
+    if(!digitalRead(InputPin[IN00_EmergencyPin]) 
         && (runtimedata.RunMode[MOTOR_SERVO] != RUN_MODE_EMERGENCY || runtimedata.RunMode[MOTOR_VR] != RUN_MODE_EMERGENCY)){
         runtimedata.RunMode[MOTOR_SERVO] = RUN_MODE_SERVO_STOP;
         runtimedata.RunMode[MOTOR_VR] = RUN_MODE_VR_STOP;

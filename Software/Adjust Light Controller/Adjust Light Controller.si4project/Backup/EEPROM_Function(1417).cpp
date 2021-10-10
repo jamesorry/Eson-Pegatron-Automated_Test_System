@@ -51,6 +51,7 @@ void   Clear_EEPROM()
 	strcpy(maindata.Vendor, VENDOR); 
 	
     maindata.Voltage_Last= 0;
+    }
 // 寫入EEPROM，回傳值count代表總共寫入幾個byte 
    int   count = EEPROM_writeAnything(0, maindata);
      

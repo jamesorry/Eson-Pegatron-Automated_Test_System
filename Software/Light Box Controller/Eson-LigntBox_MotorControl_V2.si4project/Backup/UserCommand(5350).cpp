@@ -20,7 +20,7 @@ CMD g_cmdFunc[] = {
    	{"HMI_ID", cmdHMIID},
     {"SD", cmd_UpdateEEPROM},
     {"CD", cmd_ClearEEPROM},
-    {"RD", cmd_Maindata},
+    {"SD", cmd_Maindata},
 	{"adc", getAdc},
 	{"getgpio", getGpio},
 	{"setgpio", setGpio},
@@ -40,8 +40,6 @@ CMD g_cmdFunc[] = {
     {"SlowdownStop", cmdMotorSlowdownStop},
     {"GetFreq", cmdMotorGetFreq},
     {"Position", cmdgetsetPosition},
-    {"search", cmdSearchSensor},
-    {"offset", cmd_Offset},
 	{"?", showHelp}
 };
 
@@ -94,40 +92,9 @@ void cmdHMIID(void)
         runtimedata.UpdateEEPROM = true;
     }
 }
-#if 0
-uint8_t     HMI_ID;
-long        MotorSpeed[2];
-long        MotorFrequenceStart[2];
-long        MotorAccelerateTime[2];
-long        StationPosition[3];
-uint16_t    OffsetDistanceOfStopPin;
-int         TargetStation;
-bool        Output_Last_HighLow[8];
-uint16_t    CheckVersion;
-long        VR_HomeOffset;
-
-#endif
 void cmd_Maindata(void)
 {
-    READ_EEPROM();
     cmd_port->println("HMI_ID:" + String(maindata.HMI_ID));
-    for(uint8_t i=0; i<MOTOR_TOTAL; i++){
-        cmd_port->println("Speed " +String(i) + ":" + String(maindata.MotorSpeed[i]));
-        cmd_port->println("FrequenceStart " +String(i) + ":" + String(maindata.MotorFrequenceStart[i]));
-        cmd_port->println("AccelerateTime " +String(i) + ":" + String(maindata.MotorAccelerateTime[i]));        
-    }
-    for(uint8_t i=0; i<3; i++){
-        cmd_port->println("StationPosition " +String(i) + ":" + String(maindata.StationPosition[i]));        
-    }
-    cmd_port->println("OffsetDistanceOfStopPin: " + String(maindata.OffsetDistanceOfStopPin));
-    cmd_port->println("TargetStation: " + String(maindata.TargetStation));
-    cmd_port->print("Output_Last_HighLow: ");
-    for(uint8_t i=0; i<8; i++){
-        cmd_port->print(maindata.Output_Last_HighLow[i]);
-        cmd_port->print(", ");
-    }cmd_port->println("");
-    cmd_port->println("CheckVersion: " + String(maindata.CheckVersion));
-    cmd_port->println("VR_HomeOffset: " + String(maindata.VR_HomeOffset));
 }
 void cmd_UpdateEEPROM(void)
 {
@@ -270,39 +237,23 @@ void cmdRunMode(void)
 	{
 		cmd_port->println("No parameter1");
 		return;
-	}    
-	motor = arg1.toInt();
+	}
 	if(!getNextArg(arg2))
 	{
-        if(motor == MOTOR_SERVO){
-            cmd_port->println("Servo RunMode: " + String(runtimedata.RunMode[MOTOR_SERVO]));
-        }
-        else if(motor == MOTOR_VR){
-            cmd_port->println("VR RunMode: " + String(runtimedata.RunMode[MOTOR_VR]));
-        }
+		cmd_port->println("No parameter2");
+        cmd_port->println("Servo RunMode: " + String(runtimedata.RunMode[MOTOR_SERVO]));
+        cmd_port->println("VR RunMode: " + String(runtimedata.RunMode[MOTOR_VR]));
 		return;
 	}
-    value = arg2.toInt();
+	motor = arg1.toInt();
+    value = arg1.toInt();
     if(motor == MOTOR_SERVO){
         runtimedata.RunMode[MOTOR_SERVO] = value;
-        if(value == RUN_MODE_SERVO_INIT){
-            runtimedata.Workindex[WORKINDEX_SERVO_INITIAL] = 0;
-            runtimedata.Workindex[WORKINDEX_GO_HOME] = 0;
-            runtimedata.Workindex[WORKINDEX_SEARCH_SENSOR] = 0;
-        }
-        if(value == RUN_MODE_SERVO_SEARCH_SENSOR)
-        {
-            runtimedata.Workindex[WORKINDEX_SEARCH_SENSOR] = 0;
-        }
-        DEBUG("Servo RunMode: " + String(runtimedata.RunMode[MOTOR_SERVO]));
-        }
+        cmd_port->println("Servo RunMode: " + String(runtimedata.RunMode[MOTOR_SERVO]));
+    }
     else if(motor == MOTOR_VR){
 	    runtimedata.RunMode[MOTOR_VR] = value;
-        if(value == RUN_MODE_VR_INIT){
-            runtimedata.Workindex[WORKINDEX_VR_INITIAL] = 0;
-            runtimedata.Workindex[WORKINDEX_VR_GO_HOME] = 0;
-        }
-        DEBUG("VR RunMode: " + String(runtimedata.RunMode[MOTOR_VR]));
+        cmd_port->println("VR RunMode: " + String(runtimedata.RunMode[MOTOR_VR]));
     }
 }
 
@@ -333,7 +284,7 @@ void cmdMotorStep(void)
 			case 1:
 				if(Motor[motorNumber]->getAccelerateTime() == 0)
 					Motor[motorNumber]->setAccelerateTime(200);
-				Motor[motorNumber]->Steps(stepToMove);
+				Motor[motorNumber]->Steps(stepToMove); 
 				break;
 		}
 		
@@ -556,64 +507,8 @@ void cmdgetsetPosition(void)
 	if(arg2.length()>0)
 		Motor[motorNumber]->setPosition(arg2.toInt());
 	cmd_port->println("Position: " + String(Motor[motorNumber]->getPosition()));
-    DEBUG("Station: " + String(runtimedata.Station));    
+		
 }
-
-void cmdSearchSensor()
-{
-	String arg1, arg2;
-	int targetposition;
-	
-	getNextArg(arg1);
-	if( (arg1.length()==0))
-	{
-	  cmd_port->println("Please input targetposition.");      
-      DEBUG("Now station: " + String(runtimedata.Station));    
-	  return;
-	}
-	targetposition = arg1.toInt();
-	maindata.TargetStation = targetposition;
-    cmd_port->println("targetposition: " + String(maindata.TargetStation));	
-    
-    runtimedata.RunMode[MOTOR_SERVO] = RUN_MODE_SERVO_SEARCH_SENSOR;
-    runtimedata.Workindex[WORKINDEX_SEARCH_SENSOR] = 0;
-}
-
-void cmd_Offset(void)
-{
-    String arg1, arg2;
-	int motor,offset;
-	
-	getNextArg(arg1);
-	if( (arg1.length()==0))
-	{
-	  cmd_port->println("Please input motor.");    
-	  return;
-	}
-    motor = arg1.toInt();
-    getNextArg(arg2);
-	if( (arg2.length()==0))
-	{
-	  cmd_port->println("Please input offset.");
-      if(motor == MOTOR_SERVO){
-        DEBUG("OffsetDistanceOfStopPin: " + String(maindata.OffsetDistanceOfStopPin));
-      }
-      else if(motor == MOTOR_VR){
-        DEBUG("VR_HomeOffset: " + String(maindata.VR_HomeOffset));     
-      }
-	  return;
-	}
-	offset = arg2.toInt();
-    if(motor == MOTOR_SERVO){
-        maindata.OffsetDistanceOfStopPin = offset;
-        DEBUG("OffsetDistanceOfStopPin: " + String(maindata.OffsetDistanceOfStopPin));
-    }
-    else if(motor == MOTOR_VR){
-        maindata.VR_HomeOffset = offset;
-        DEBUG("VR_HomeOffset: " + String(maindata.VR_HomeOffset));     
-    }
-}
-
 
 uint8_t UserCommWorkindex = 0;
 

@@ -48,7 +48,7 @@ public:
   bool Response_Set_Station();
   bool Response_ReadParameter();
   bool Response_WriteParameter();
-  bool Response_Motor_Stop();
+  bool Response_Save_Data();
   bool Response_Control_Board_Status();
   bool Response_Restart();
   bool Response_IO_Status();
@@ -77,7 +77,7 @@ public:
 #define HMI_CMD_SET_STATION             0x01
 #define HMI_CMD_READ_PARAMETER          0x02
 #define HMI_CMD_WRITE_PARAMETER         0x03
-#define HMI_CMD_MOTOR_STOP               0x04
+#define HMI_CMD_SAVE_DATA               0x04
 #define HMI_CMD_CONTROL_BOARD_STATUS    0x05
 #define HMI_CMD_RESTART                 0x06
 #define HMI_CMD_IO_STATUS               0x07

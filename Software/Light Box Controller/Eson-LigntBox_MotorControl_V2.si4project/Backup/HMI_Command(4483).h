@@ -37,7 +37,7 @@ private:
   bool skipHMI_ID;
 
 public:
-  HMI_Command(HardwareSerial *cmdport, const uint32_t baudrate = 38400, const uint8_t reqid = 0xF1, const uint8_t resid = 0xF9, const bool skipid = false);
+  HMI_Command(HardwareSerial *cmdport, const uint32_t baudrate = 115200, const uint8_t reqid = 0xF1, const uint8_t resid = 0xF9, const bool skipid = false);
   ~HMI_Command();
 
   void Process(void);
@@ -48,7 +48,7 @@ public:
   bool Response_Set_Station();
   bool Response_ReadParameter();
   bool Response_WriteParameter();
-  bool Response_Motor_Stop();
+  bool Response_Save_Data();
   bool Response_Control_Board_Status();
   bool Response_Restart();
   bool Response_IO_Status();
@@ -57,7 +57,7 @@ public:
   bool Indication_Data();
   bool Indication_Emergency();
   bool Response_VR_Home_Offset();
-  bool Response_Motor_Search_Home();
+
   void Set_HMIID(uint8_t id);
 
   void CommandTest();
@@ -77,7 +77,7 @@ public:
 #define HMI_CMD_SET_STATION             0x01
 #define HMI_CMD_READ_PARAMETER          0x02
 #define HMI_CMD_WRITE_PARAMETER         0x03
-#define HMI_CMD_MOTOR_STOP               0x04
+#define HMI_CMD_SAVE_DATA               0x04
 #define HMI_CMD_CONTROL_BOARD_STATUS    0x05
 #define HMI_CMD_RESTART                 0x06
 #define HMI_CMD_IO_STATUS               0x07
@@ -85,8 +85,6 @@ public:
 #define HMI_CMD_MOTOR_MOVE              0x09
 #define HMI_CMD_EMERGENCY_INDICATION    0x0A
 #define HMI_CMD_VR_HOME_OFFSET          0x0D
-#define HMI_CMD_MOTOR_SEARCH_HOME       0x0E
-
 
 #define HMI_CMD_BYTE_TAGID 0
 #define HMI_CMD_BYTE_LENGTH 1

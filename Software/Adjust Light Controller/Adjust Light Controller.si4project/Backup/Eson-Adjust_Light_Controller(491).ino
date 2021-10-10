@@ -65,6 +65,7 @@ void loop() {
 	UserCommand_Task();
     MainProcess_Task();
     hmi_cmd->Process();
+    
 	if(runtimedata.UpdateEEPROM)
 	{
 		runtimedata.UpdateEEPROM = false;

@@ -3,7 +3,7 @@
 
 #include "Arduino.h"
 
-#define	VERSTR	"2021101001"
+#define	VERSTR	"2021100601"
 #define VENDOR	"LienHong"
 //調光控制板*8
 
@@ -61,11 +61,11 @@ ID 6,7 --> Lux_Table[3][]
 typedef struct _MainDataStruct_
 {
 //	此處的變數值會寫到EEPROM
-	char     Vendor[10];
-    uint8_t  HMI_ID;
-    uint8_t  Voltage_Last;  // 上次的Voltage輸出值(0~100%)
-    bool     Output_Last_HighLow[4]; //目前還無法修改初始數值    
-    uint32_t CheckVersion;
+	char   Vendor[10];
+    uint8_t HMI_ID;
+    uint8_t Voltage_Last;  // 上次的Voltage輸出值(0~100%)
+    bool    Output_Last_HighLow[4] = {0, 0, 0, 0}; //目前還無法修改初始數值    
+    uint16_t CheckVersion;
 }MainDataStruct;
 
 
@@ -78,7 +78,7 @@ typedef struct _RuntimeStruct_
 	uint8_t sensor[INPUT_NUMBER];
 	uint8_t outbuf[OUTPUT_NUMBER];
 
-	bool 	UpdateEEPROM = false;
+	bool 		UpdateEEPROM;
     uint8_t CheckReceive = -1;
 }RuntimeStatus;
 

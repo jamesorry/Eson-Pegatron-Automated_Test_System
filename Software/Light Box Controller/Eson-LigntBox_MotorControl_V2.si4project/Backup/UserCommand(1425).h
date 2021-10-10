@@ -36,8 +36,6 @@ void cmdMotorSlowdown(void);
 void cmdMotorSlowdownStop(void);
 void cmdMotorGetFreq(void);
 void cmdgetsetPosition(void);
-void cmdSearchSensor();
-void cmd_Offset(void);
 void UserCommand_Task(void);
 void UserCommand_Timer(void);
 

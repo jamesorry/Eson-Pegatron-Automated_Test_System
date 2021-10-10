@@ -10,8 +10,8 @@
 #define MOTOR_VR			            1
 #define MOTOR_TOTAL			            2
 
-#define SPEED_SERVO_SEARCH              4000
-#define SPEED_SERVO_GOHOME              3000
+#define SPEED_SERVO_SEARCH              2000
+#define SPEED_SERVO_GOHOME              1000
 #define TIME_FLATCAR_ACCELERATE		    300
 
 #define	EXTIO_NUM		                0
@@ -52,7 +52,6 @@
 #define WORKINDEX_VR_INITIAL			1
 #define WORKINDEX_GO_HOME				2
 #define WORKINDEX_SEARCH_SENSOR			3
-#define WORKINDEX_VR_GO_HOME		    4
 #define WORKINDEX_TOTAL					8
 
 
@@ -73,9 +72,9 @@ typedef struct _MainDataStruct_
 	long		MotorAccelerateTime[2];
     long        StationPosition[3];
     uint16_t    OffsetDistanceOfStopPin;
-    int         TargetStation;
+    uint8_t     TargetStation;
     bool        Output_Last_HighLow[8];
-    uint32_t    CheckVersion;
+    uint16_t    CheckVersion;
     long        VR_HomeOffset;
 }MainDataStruct;
 
@@ -94,7 +93,7 @@ typedef struct _RuntimeStruct_
 	uint8_t		ErrorCode;
     int         SerarchPin;
     int         SerarchDir;
-    int         Station;
+    uint8_t     Station;
 }RuntimeStatus;
 
 void MainProcess_Timer();
@@ -107,7 +106,6 @@ void MotorServoStatus();
 bool MotorServoInit();
 bool MotorVRInit();
 bool MotorGoHome(int motornum);
-bool VRGoHome(int motornum);
 void MotorServoSearchSensor(int pin, int dir=-1, int toggletimes = 0);
 void MotorServoSearchSensor(int dir=-1, int toggletimes = 0);
 void MotorVRSearchSensor(int dir=-1, int toggletimes = 0);

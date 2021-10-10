@@ -25,7 +25,7 @@ CMD g_cmdFunc[] = {
 	{"echooff", echoOff},
     {"SD", cmd_UpdateEEPROM},
     {"CD", cmd_ClearEEPROM},
-    {"RD", cmd_Maindata},
+    {"SD", cmd_Maindata},
     {"Output", cmd_Output},
     {"MCP4725ADC", cmd_SetMCP4725_ADC},
     {"SetVoltage", cmd_SetVoltage},
@@ -286,12 +286,7 @@ void cmd_SetVoltage(void)
 void cmd_Maindata(void)
 {
     cmd_port->println("HMI_ID:" + String(maindata.HMI_ID));
-    cmd_port->println("Voltage_Last:" + String(maindata.Voltage_Last));    
-    cmd_port->print("Output_Last_HighLow: ");
-    for(uint8_t i=0; i<4; i++){
-        cmd_port->print(maindata.Output_Last_HighLow[i]);
-        cmd_port->print(", ");
-    }cmd_port->println("");
+    cmd_port->println("Voltage_Last:" + String(maindata.Voltage_Last));
 }
 
 uint8_t UserCommWorkindex = 0;
