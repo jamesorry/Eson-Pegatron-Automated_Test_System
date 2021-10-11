@@ -49,9 +49,10 @@ public:
 
     
 	bool Response_Ping();
+    bool Response_Set_HMI_ID();
 	bool Response_ReadParameter();
     bool Response_WriteParameter();
-    bool Response_Motor_Stop();
+    bool Response_Save_Data();
     bool Response_Control_Board_Status();
     bool Response_Restart();
 	bool Response_IO_Status();
@@ -59,7 +60,7 @@ public:
     bool Response_Motor_Move();
 	bool Indication_Data();
     bool Indication_Emergency();
-    bool Response_Motor_Search_Home();
+	
 	void Set_HMIID(uint8_t id);
 	
 	void CommandTest();
@@ -76,16 +77,17 @@ public:
 
 
 #define HMI_CMD_PING							0x00
+#define HMI_CMD_SET_HMI_ID                      0x01
 #define HMI_CMD_READ_PARAMETER				    0x02
 #define HMI_CMD_WRITE_PARAMETER				    0x03
-#define HMI_CMD_MOTOR_STOP				        0x04
+#define HMI_CMD_SAVE_DATA				        0x04
 #define HMI_CMD_CONTROL_BOARD_STATUS			0x05
 #define HMI_CMD_RESTART 						0x06
 #define HMI_CMD_IO_STATUS						0x07
 #define HMI_CMD_SET_DO          				0x08
 #define HMI_CMD_MOTOR_MOVE  					0x09
 #define HMI_CMD_EMERGENCY_INDICATION       		0x0A
-#define HMI_CMD_MOTOR_SEARCH_HOME               0x0E
+
 
 #define HMI_CMD_BYTE_TAGID				0
 #define HMI_CMD_BYTE_LENGTH				1

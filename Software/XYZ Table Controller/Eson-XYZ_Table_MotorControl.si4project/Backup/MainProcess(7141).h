@@ -5,7 +5,6 @@
 #include "hmi.h"
 
 #define MOTOR_X             0
-#define MOTOR_TOTAL         1
 #define SPEED_GO_HOME       1000
 
 #define	EXTIO_NUM		0
@@ -18,14 +17,10 @@
 #define	INPUT_NONE_ACTIVE	0
 #define	INPUT_ACTIVE		1
 
-#define IN00_EmergencyPin       0
-#define IN01_FrontLimitPin      1
-#define IN02_BackLimitPin       2
-
-#define RUN_MODE_EMERGENCY		-1
-#define RUN_MODE_STOP		    0
-#define RUN_MODE_GO_HOME        1
-#define RUN_MODE_INIT           2
+#define STATION_UNKNOW		-1
+#define RUN_MODE_STOP		0
+#define RUN_MODE_GO_HOME    1
+#define RUN_MODE_EMERGENCY  2
 
 #define WORKINDEX_TOTAL		4
 #define WORKINDEX_GO_HOME   0
@@ -38,8 +33,9 @@ typedef struct _DigitalIO_
 
 typedef struct _MainDataStruct_
 {
-	char        Vendor[10];
+	char Vendor[10];
 	uint8_t 	HMI_ID;
+	char 		Mode;
 	long		MotorSpeed[3];
 	long		MotorFrequenceStart[3];
 	long		MotorAccelerateTime[3];
@@ -56,12 +52,13 @@ typedef struct _RuntimeStruct_
 	uint8_t outbuf[(OUTPUT_8_NUMBER+EXTIO_NUM)*8];
 
 	bool 		UpdateEEPROM;
-	int 		RunMode = 0;
-    int 		preRunMode = -1;
+	int 		RunMode = 0;	
+	bool	 	run;
+	uint8_t		ErrorCode;
+    
     uint16_t    ReadInput = 0x00;
     uint16_t    PositionInput = 0x00;
     bool        IndicationEmergency = false;
-    bool        NeedRestart = false;
 }RuntimeStatus;
 
 

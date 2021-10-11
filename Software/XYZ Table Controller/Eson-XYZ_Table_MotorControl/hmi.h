@@ -4,7 +4,15 @@
 #include "Arduino.h"
 #include "SoftwareSerial.h"
 
-#define	VERSTR	"2021091401"
+#define DEBUG(...) Serial.println(__VA_ARGS__); \
+                   Serial.print(" @ [LINE]:     "); \
+                   Serial.println(__LINE__); \
+                   Serial.print(" @ [FUNCTION]: "); \
+                   Serial.println(__func__);
+//                   Serial.print(" @ [SRC]:      "); \
+//                   Serial.println(__FILE__); \
+//
+#define	VERSTR	"2021101101"
 
 #define setbit(value,x) (value |=(1<<x))
 #define getbit(value,x) ((value>>x)&1)
@@ -37,7 +45,6 @@
 #define IN14         36
 #define IN15         37
 
-#define IN_EmergencyPin    15
 
 #define FLASH_CS     47        // FLASH ROM CS PIN
 #define BUZZ         48

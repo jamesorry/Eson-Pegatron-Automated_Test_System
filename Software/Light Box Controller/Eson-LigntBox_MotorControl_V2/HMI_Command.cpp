@@ -100,6 +100,10 @@ void HMI_Command::SendCommandQ(void)
 				}
 				
 				SendCmdTimeCnt = millis();
+                if(runtimedata.NeedRestart){
+                    extern void resetArduino();
+                    resetArduino();
+                }
 			}
 		}
 	}
@@ -445,7 +449,9 @@ bool HMI_Command::Response_Control_Board_Status()
                 rec.data[HMI_CMD_BYTE_DATA+1] = 0x00; //status Motor stop.
             else
                 rec.data[HMI_CMD_BYTE_DATA+1] = 0x01; //status Motor is running.
-            rec.data[HMI_CMD_BYTE_DATA+2] = runtimedata.Station;
+//            rec.data[HMI_CMD_BYTE_DATA+2] = runtimedata.Station;//到站後才會更新
+            rec.data[HMI_CMD_BYTE_DATA+2] = runtimedata.PositionInput;
+            cmd_port->println("PositionInput: " + String(runtimedata.PositionInput, BIN));
             DEBUG("Pos:" + String(Motor[motornum]->getPosition()));
             for(uint8_t i=0; i<4; i++)
                 rec.data[HMI_CMD_BYTE_DATA+3+i] = (Motor[motornum]->getPosition() >> (3-i)*8)& 0xff;
@@ -490,7 +496,7 @@ bool HMI_Command::Response_Restart()
 #if HMI_CMD_DEBUG
     cmd_port->println("Response_Restart()");
 #endif
-    
+    runtimedata.NeedRestart = true;
     return true;
 }
 
@@ -629,11 +635,18 @@ bool HMI_Command::Response_Motor_Move()
 #if HMI_CMD_DEBUG
     cmd_port->println("Response_Motor_Move()");
 #endif
-    if(Motor[motornum]->getState() == MOTOR_STATE_STOP){
-        if(movetype == 0x00)
+    if(Motor[motornum]->getState() == MOTOR_STATE_STOP)
+    {
+        if(movetype == 0x00)//相對位置移動
+        {
             Motor[motornum]->Steps(step, Motor[motornum]->getFrequence());
-        else if(movetype == 0x01)
+        }
+        else if(movetype == 0x01)//絕對位置移動
+        {
+            if(motornum == MOTOR_VR)
+                maindata.VR_HomeOffset = step;
             Motor[motornum]->MoveTo(step, Motor[motornum]->getFrequence());
+        }
     }
     return true;
 }
@@ -662,8 +675,11 @@ bool HMI_Command::Indication_Emergency()
 {
     uint8_t i;
     HMICmdRec rec;
-    rec.datatype = QUEUE_DATA_TYPE_INDICATION;
-    rec.data[HMI_CMD_BYTE_TAGID] = RequestTagID;
+//    rec.datatype = QUEUE_DATA_TYPE_INDICATION;
+//    rec.data[HMI_CMD_BYTE_TAGID] = RequestTagID;
+    //改成
+    rec.datatype = QUEUE_DATA_TYPE_RESPONSE;
+    rec.data[HMI_CMD_BYTE_TAGID] = ResponseTagID;
     rec.data[HMI_CMD_BYTE_LENGTH] = HMI_CMD_LEN_BASE;
     rec.data[HMI_CMD_BYTE_CMDID] = HMI_CMD_EMERGENCY_INDICATION;
     rec.data[HMI_CMD_BYTE_HMIID] = maindata.HMI_ID;

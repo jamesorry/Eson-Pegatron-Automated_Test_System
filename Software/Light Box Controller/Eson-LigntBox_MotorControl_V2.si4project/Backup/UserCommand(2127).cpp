@@ -262,37 +262,6 @@ void cmd_CodeVer(void)
 {
 	cmd_port->println(VERSTR);
 }
-#if 0
-#define RUN_MODE_EMERGENCY		        -1
-#define RUN_MODE_SERVO_STOP				0
-#define RUN_MODE_SERVO_INIT				1
-#define RUN_MODE_SERVO_NORMAL			2
-#define RUN_MODE_SERVO_SEARCH_SENSOR	3
-
-#define RUN_MODE_VR_STOP			    0
-#define RUN_MODE_VR_INIT				1
-#define RUN_MODE_VR_IO_INIT				2
-#define RUN_MODE_VR_NORMAL				3
-#endif
-char *RunModeServoStrings[] = 
-{ 
-    "RUN_MODE_EMERGENCY: -1",
-    "RUN_MODE_SERVO_STOP: 0",
-    "RUN_MODE_SERVO_INIT: 1",
-    "RUN_MODE_SERVO_NORMAL: 2",
-    "RUN_MODE_SERVO_SEARCH_SENSOR: 3",
-};
-const size_t nb_Servo_strings = sizeof(RunModeServoStrings) / sizeof(RunModeServoStrings[0]);
-char *RunModeVRStrings[] = 
-{ 
-    "RUN_MODE_EMERGENCY: -1",
-    "RUN_MODE_VR_STOP: 0",
-    "RUN_MODE_VR_INIT: 1",
-    "RUN_MODE_VR_IO_INIT: 2",
-    "RUN_MODE_VR_NORMAL: 3",
-};
-const size_t nb_VR_strings = sizeof(RunModeVRStrings) / sizeof(RunModeVRStrings[0]);
-
 void cmdRunMode(void)
 {
 	String arg1,arg2;
@@ -301,14 +270,8 @@ void cmdRunMode(void)
 	{
 		cmd_port->println("No parameter1");
 		return;
-	}
+	}    
 	motor = arg1.toInt();
-    for(int i=0; i<nb_Servo_strings; i++){
-        cmd_port->println(RunModeServoStrings[i]);
-    }
-    for(int i=0; i<nb_VR_strings; i++){
-        cmd_port->println(RunModeVRStrings[i]);
-    }
 	if(!getNextArg(arg2))
 	{
         if(motor == MOTOR_SERVO){
@@ -568,35 +531,6 @@ void cmdMotorSlowdownStop(void)
     }
 }
 
-void cmdMotorInfo()
-{
-	String arg1, arg2, arg3, arg4;
-	int motorNumber;
-	RotateInfo decinfo;
-	RotateInfo accinfo;
-	
-	
-	if(!getNextArg(arg1))
-	{
-	  cmd_port->println("No parameter 1");
-	  return;
-	}
-	motorNumber = arg1.toInt();
-    if(motorNumber > 2 && motorNumber < 0) return;
-	cmd_port->println("Timer: " + String(Motor[motorNumber]->getTimer(), DEC) + ", VectNum: " + String(Motor[motorNumber]->getVectNum(), DEC));
-	cmd_port->println("State: " + String(Motor[motorNumber]->getState(), DEC));
-	cmd_port->println("Pin: " + String(Motor[motorNumber]->getPulsePin(), DEC) + ", " + String(Motor[motorNumber]->getDirPin(), DEC));
-	cmd_port->println("Direction: " + String(Motor[motorNumber]->getDirection(), DEC));
-	cmd_port->println("Resolution: " + String(Motor[motorNumber]->getResolution(), DEC));
-	cmd_port->println("RPM: " + String(Motor[motorNumber]->getRPM()));
-	cmd_port->println("Freq Target: " + String(Motor[motorNumber]->getFrequence(), DEC) + ", Startup: " + String(Motor[motorNumber]->getFrequenceStartup(), DEC) + ", Now: " + String(Motor[motorNumber]->getFrequenceNow(), DEC) + ", Rotate Mode: " + String(Motor[motorNumber]->getRotateMode(), DEC));
-	cmd_port->println("Accelerate time: " + String(Motor[motorNumber]->getAccelerateTime(), DEC));
-	cmd_port->println("TargetPosition: " + String(Motor[motorNumber]->getTargetPosition(), DEC));
-	cmd_port->println("Position: " + String(Motor[motorNumber]->getPosition(), DEC) + ", PWMOnOff: " + String(Motor[motorNumber]->getPWMOnOff(Motor[motorNumber]->getTimer())));
-	cmd_port->println("ACC: " + String(Motor[motorNumber]->AccelerateInfo.stepscnt, DEC) + " T: " + String(Motor[motorNumber]->AccelerateInfo.endms-Motor[motorNumber]->AccelerateInfo.startms) + ", DEC: " + String(Motor[motorNumber]->DecelerateInfo.stepscnt) + " T: " + String(Motor[motorNumber]->DecelerateInfo.endms-Motor[motorNumber]->DecelerateInfo.startms));
-	cmd_port->println("INC: " + String(Motor[motorNumber]->FrequenceIncIndex, DEC) + " / " + String(sizeof(AccelerateTable) / 2, DEC) + " T: " + String(AccelerateTable[Motor[motorNumber]->FrequenceIncCnt]));
-		
-}
 
 void cmdMotorGetFreq(void)
 {
@@ -622,8 +556,7 @@ void cmdgetsetPosition(void)
 	if(arg2.length()>0)
 		Motor[motorNumber]->setPosition(arg2.toInt());
 	cmd_port->println("Position: " + String(Motor[motorNumber]->getPosition()));
-    DEBUG("Station: " + String(runtimedata.Station));
-    DEBUG("PositionInput: " + String(runtimedata.PositionInput, BIN));
+    DEBUG("Station: " + String(runtimedata.Station));    
 }
 
 void cmdSearchSensor()

@@ -55,6 +55,8 @@
 #define WORKINDEX_VR_GO_HOME		    4
 #define WORKINDEX_TOTAL					8
 
+
+
 typedef struct _DigitalIO_
 {
 	uint8_t	Input[4];
@@ -92,10 +94,7 @@ typedef struct _RuntimeStruct_
 	uint8_t		ErrorCode;
     int         SerarchPin;
     int         SerarchDir;
-    int         Station;    
-    uint8_t     ReadInput = 0x00;
-    uint8_t     PositionInput = 0x00;
-    bool        NeedRestart = false;
+    int         Station;
 }RuntimeStatus;
 
 void MainProcess_Timer();
@@ -115,7 +114,6 @@ void MotorVRSearchSensor(int dir=-1, int toggletimes = 0);
 void goHome(int motornum);
 uint8_t getStationSensor();
 bool LightBoxSearchSensor();
-void ReadPositionSensor();
 void buzzerPlay(int ms);
 
 

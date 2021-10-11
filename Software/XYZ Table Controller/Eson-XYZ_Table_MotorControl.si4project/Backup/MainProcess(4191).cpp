@@ -82,9 +82,9 @@ void MainProcess_ReCheckEEPROMValue()
 	}
     
 	for(i=0; i<3; i++)
-		if((maindata.MotorSpeed[i] > MOTOR_SPEED_MAX) || (maindata.MotorSpeed[i] < MOTOR_SPEED_MIN))
+		if((maindata.MotorSpeed[i] > MOTOR_VELOCITY_MAX) || (maindata.MotorSpeed[i] < 256))
 		{
-			maindata.MotorSpeed[i] = MOTOR_SPEED_MIN;
+			maindata.MotorSpeed[i] = MOTOR_SPEED_NORMAL;
 			runtimedata.UpdateEEPROM = true;
 		}
     
@@ -107,9 +107,11 @@ void MainProcess_Init()
 	runtimedata.RunMode = RUN_MODE_STOP;
 
 	for(i=0; i<WORKINDEX_TOTAL; i++)
-		runtimedata.Workindex[i]  = 0x00;
-	for(i=0; i<WORKINDEX_TOTAL; i++)
-		runtimedata.preWorkindex[i]  = -1;
+		runtimedata.Workindex[i]  = 0xF0;
+    
+	runtimedata.run = false;
+	runtimedata.ErrorCode = 0x0000;
+
 		
 	for(i=0;i<INPUT_8_NUMBER+EXTIO_NUM;i++)
 		digitalio.Input[i] = 0;
@@ -150,11 +152,12 @@ void MainProcess_Init()
 			extio[j].pinMode(i+8,INPUT);	 // Button i/p to GND
 			extio[j].pullUp(i+8,HIGH);	 // Puled high to ~100k
 		}
-	Motor[MOTOR_X] = new StepperMotor(2, A8, 10000, 5000);
-    Motor[1] = new StepperMotor(7, A11, 10000, 5000);
+	Motor[0] = new StepperMotor(2, A8, 10000, 5000);
+	Motor[1] = new StepperMotor(7, A11, 10000, 5000);
 	Motor[2] = new StepperMotor(12, A13, 10000, 5000);
 
-    Motor[MOTOR_X]->setLimitPin(InputPin[IN01_FrontLimitPin], LOW, InputPin[IN02_BackLimitPin], LOW); //LOW時停下來
+	Motor[2]->setLimitPin(InputPin[1], LOW, InputPin[0], LOW); //LOW時停下來
+    
 }
 
 void ReadDigitalInput()
@@ -270,19 +273,8 @@ void WriteDigitalOutput()
 void MainProcess_Task()  
 {
     ReadPositionSensor();
-    if(runtimedata.preRunMode != runtimedata.RunMode)
-    {
-        runtimedata.preRunMode != runtimedata.RunMode;
-        cmd_port->println("RunMode: " + String(runtimedata.preRunMode));
-    }
 	switch(runtimedata.RunMode)
 	{
-        case RUN_MODE_EMERGENCY:
-            if(EmergencyTimeCnt > 2000){
-                EmergencyTimeCnt = 0;
-                hmicmd->Indication_Emergency();
-            }
-            break;
 	    case RUN_MODE_STOP:
             if(Motor[MOTOR_X]->getState() != MOTOR_STATE_STOP){
                 Motor[MOTOR_X]->Stop();
@@ -292,12 +284,18 @@ void MainProcess_Task()
             }
             break;
 		case RUN_MODE_GO_HOME:
+            if(runtimedata.Workindex[WORKINDEX_GO_HOME] == -1){
+                runtimedata.Workindex[WORKINDEX_GO_HOME] = 0;
+            }
             if(Go_Home()){
-                runtimedata.RunMode = RUN_MODE_INIT;
+                runtimedata.RunMode = RUN_MODE_STOP;
             }
 			break;
-        case RUN_MODE_INIT:
-            runtimedata.RunMode = RUN_MODE_STOP;
+        case RUN_MODE_EMERGENCY:
+            if(EmergencyTimeCnt > 1000){
+                EmergencyTimeCnt = 0;
+                hmicmd->Indication_Emergency();
+            }
             break;
 	}
     
@@ -306,14 +304,9 @@ void MainProcess_Task()
 bool Go_Home()
 {
     bool result = false;
-    if(runtimedata.preWorkindex[WORKINDEX_GO_HOME] != runtimedata.Workindex[WORKINDEX_GO_HOME])
-    {
-        runtimedata.preWorkindex[WORKINDEX_GO_HOME] = runtimedata.Workindex[WORKINDEX_GO_HOME];
-        cmd_port->println("WORKINDEX_GO_HOME: " + String(runtimedata.preWorkindex[WORKINDEX_GO_HOME]));
-    }
     switch(runtimedata.Workindex[WORKINDEX_GO_HOME]){
         case 0:
-            Motor[MOTOR_X]->Speed(-SPEED_GO_HOME);
+            Motor[MOTOR_X]->Speed(SPEED_GO_HOME);
             runtimedata.Workindex[WORKINDEX_GO_HOME] += 10;
             break;
         case 10:

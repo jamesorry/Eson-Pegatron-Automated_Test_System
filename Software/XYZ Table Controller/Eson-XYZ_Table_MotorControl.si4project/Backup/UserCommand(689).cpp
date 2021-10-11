@@ -409,6 +409,119 @@ void cmd_CodeVer(void)
 	cmd_port->println(VERSTR);
 }
 
+uint8_t UserCommWorkindex = 0;
+uint32_t UserCommandTimeCnt = 0;
+void UserCommand_Task(void)
+{
+  int i, incomingBytes, ret, cmdPortIndex;
+  char data[2] = {0};
+
+	switch(UserCommWorkindex)
+	{
+		case 0:
+		{
+			
+			if(cmd_port->available())
+			{
+				g_inputBuffer = &g_inputBuffer0;
+				UserCommWorkindex ++;
+				UserCommandTimeCnt = millis();
+			}
+			break;
+		}
+		case 1:
+		{
+			if((millis() - UserCommandTimeCnt) > 50)
+				UserCommWorkindex ++;
+			break;
+		}
+		case 2:
+		{
+		  if ( incomingBytes = cmd_port->available() )
+		  {
+
+			cmd_port->println("cmd_port datalen: " + String(incomingBytes));
+
+			for ( i = 0; i < incomingBytes; i++ )
+			{
+			  ret = cmd_port->read();
+			  if ( (ret >= 0x20) && (ret <= 0x7E) || (ret == 0x0D) || (ret == 0x0A) )
+			  {
+				data[0] = (char)ret;
+				(*g_inputBuffer) += data;
+				if (g_echoOn)
+				{
+				  if ( (data[0] != 0x0D) && (data[0] != 0x0A) )
+					cmd_port->write(data);
+				}
+			  }
+			  else if (ret == 0x08)
+			  {
+				if (g_inputBuffer->length())
+				{
+				  g_inputBuffer->remove(g_inputBuffer->length() - 1);
+				  if (g_echoOn)
+				  {
+					data[0] = 0x08;
+					cmd_port->write(data);
+				  }
+				}
+			  }
+			}
+			if (g_inputBuffer->indexOf('\r') == -1)
+			{
+			  if (g_inputBuffer->indexOf('\n') == -1)
+				return;
+			}
+			g_inputBuffer->trim();
+			while (g_inputBuffer->indexOf('\r') != -1)
+			  g_inputBuffer->remove(g_inputBuffer->indexOf('\r'), 1);
+			while (g_inputBuffer->indexOf('\n') != -1)
+			  g_inputBuffer->remove(g_inputBuffer->indexOf('\n'), 1);
+			while (g_inputBuffer->indexOf("  ") != -1)
+			  g_inputBuffer->remove(g_inputBuffer->indexOf("  "), 1);
+		
+			cmd_port->println();
+		
+			if (g_inputBuffer->length())
+			{
+			  g_arg.remove(0);
+			  if (g_inputBuffer->indexOf(" ") == -1)
+				g_cmd = (*g_inputBuffer);
+			  else
+			  {
+				g_cmd = g_inputBuffer->substring(0, g_inputBuffer->indexOf(" "));
+				g_arg = g_inputBuffer->substring(g_inputBuffer->indexOf(" ") + 1);
+			  }
+			  for (i = 0; i < (sizeof(g_cmdFunc) / sizeof(CMD)); i++)
+			  {
+				//if(g_cmd==g_cmdFunc[i].cmd)
+				if (g_cmd.equalsIgnoreCase(g_cmdFunc[i].cmd))
+				{
+				  g_cmdFunc[i].func();
+				  cmd_port->print("ARDUINO>");
+				  break;
+				}
+				else if (i == (sizeof(g_cmdFunc) / sizeof(CMD) - 1))
+				{
+				  cmd_port->println("bad command !!");
+				  cmd_port->print("ARDUINO>");
+				}
+			  }
+			  *g_inputBuffer = "";
+			}
+			else
+			{
+			  cmd_port->print("ARDUINO>");
+			}
+			UserCommWorkindex = 0;
+			break;
+		}
+	}
+
+  }
+}
+
 void cmdRunMode(void)
 {
 	String arg1, arg2;
@@ -1198,132 +1311,5 @@ void setPWM(void)
   	else
   		TIMSK4 |= (1<<OCIE4C);  //enable timer compare interrupt*/
 }
-
-
-uint8_t UserCommWorkindex = 0;
-
-uint16_t UserCommandTimeCnt = 0;
-void UserCommand_Timer(void)
-{
-
-	if(UserCommandTimeCnt < 0xFF00)
-		UserCommandTimeCnt += TIMER_INTERVAL_MS;
-}
-
-void UserCommand_Task(void)
-{
-  int i, incomingBytes, ret, cmdPortIndex;
-  char data[2] = {0};
-
-	switch(UserCommWorkindex)
-	{
-		case 0:
-		{
-			
-			if(cmd_port->available())
-			{
-				g_inputBuffer = &g_inputBuffer0;
-				UserCommWorkindex ++;
-				UserCommandTimeCnt = 0;
-			}
-			break;
-		}
-		case 1:
-		{
-			if(UserCommandTimeCnt > 50)
-				UserCommWorkindex ++;
-			break;
-		}
-		case 2:
-		{
-		  if ( incomingBytes = cmd_port->available() )
-		  {
-#if USER_COMMAND_DEBUG  
-			cmd_port->println("cmd_port datalen: " + String(incomingBytes));
-#endif  	
-			for ( i = 0; i < incomingBytes; i++ )
-			{
-			  ret = cmd_port->read();
-			  if ( (ret >= 0x20) && (ret <= 0x7E) || (ret == 0x0D) || (ret == 0x0A) )
-			  {
-				data[0] = (char)ret;
-				(*g_inputBuffer) += data;
-				if (g_echoOn)
-				{
-				  if ( (data[0] != 0x0D) && (data[0] != 0x0A) )
-					cmd_port->write(data);
-				}
-			  }
-			  else if (ret == 0x08)
-			  {
-				if (g_inputBuffer->length())
-				{
-				  g_inputBuffer->remove(g_inputBuffer->length() - 1);
-				  if (g_echoOn)
-				  {
-					data[0] = 0x08;
-					cmd_port->write(data);
-				  }
-				}
-			  }
-			}
-			if (g_inputBuffer->indexOf('\r') == -1)
-			{
-			  if (g_inputBuffer->indexOf('\n') == -1)
-				return;
-			}
-			g_inputBuffer->trim();
-			while (g_inputBuffer->indexOf('\r') != -1)
-			  g_inputBuffer->remove(g_inputBuffer->indexOf('\r'), 1);
-			while (g_inputBuffer->indexOf('\n') != -1)
-			  g_inputBuffer->remove(g_inputBuffer->indexOf('\n'), 1);
-			while (g_inputBuffer->indexOf("  ") != -1)
-			  g_inputBuffer->remove(g_inputBuffer->indexOf("  "), 1);
-		
-			cmd_port->println();
-		
-			if (g_inputBuffer->length())
-			{
-			  g_arg.remove(0);
-			  if (g_inputBuffer->indexOf(" ") == -1)
-				g_cmd = (*g_inputBuffer);
-			  else
-			  {
-				g_cmd = g_inputBuffer->substring(0, g_inputBuffer->indexOf(" "));
-				g_arg = g_inputBuffer->substring(g_inputBuffer->indexOf(" ") + 1);
-			  }
-			  for (i = 0; i < (sizeof(g_cmdFunc) / sizeof(CMD)); i++)
-			  {
-				//if(g_cmd==g_cmdFunc[i].cmd)
-				if (g_cmd.equalsIgnoreCase(g_cmdFunc[i].cmd))
-				{
-				  g_cmdFunc[i].func();
-				  cmd_port->println();
-//				  cmd_port->print("ARDUINO>");
-				  break;
-				}
-				else if (i == (sizeof(g_cmdFunc) / sizeof(CMD) - 1))
-				{
-				  cmd_port->println("bad command !!");
-				  cmd_port->println();
-//				  cmd_port->print("ARDUINO>");
-				}
-			  }
-			  *g_inputBuffer = "";
-			}
-			else
-			{
-			  cmd_port->println();
-//			  cmd_port->print("ARDUINO>");
-			}
-			UserCommWorkindex = 0;
-			break;
-		}
-	}
-
-  }
-}
-
-
 
 

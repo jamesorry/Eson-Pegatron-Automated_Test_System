@@ -13,7 +13,7 @@ DigitalIO digitalio;
 Adafruit_MCP23017 extio[EXTIO_NUM];
 MainDataStruct maindata;
 RuntimeStatus runtimedata;
-StepperMotor *Motor[MOTOR_TOTAL];
+StepperMotor *Motor[2];
 
 
 void MainProcess_Timer()
@@ -284,7 +284,6 @@ uint8_t getInput(uint8_t index)
 
 void MainProcess_Task()  // This is a task.
 {
-    ReadPositionSensor();
     MotorVRStatus();
     MotorServoStatus();
 }
@@ -299,10 +298,9 @@ void MotorServoStatus()
 	switch(runtimedata.RunMode[MOTOR_SERVO])
 	{
         case RUN_MODE_EMERGENCY:
-            if(EmergencyTimeCnt > 3000){
+            if(EmergencyTimeCnt > 1500){
                 EmergencyTimeCnt = 0;
-//                hmicmd->Indication_Emergency();
-                DEBUG("Indication_Emergency()");
+                hmicmd->Indication_Emergency();
             }
             if(!digitalRead(InputPin[IN00_EmergencyPin])){
                 runtimedata.IndicationEmergency = false;
@@ -351,10 +349,9 @@ void MotorVRStatus()
 	switch(runtimedata.RunMode[MOTOR_VR])
     {
         case RUN_MODE_EMERGENCY:
-            if(EmergencyTimeCnt > 3000){
+            if(EmergencyTimeCnt > 1500){
                 EmergencyTimeCnt = 0;
-//                hmicmd->Indication_Emergency();
-                DEBUG("Indication_Emergency()");
+                hmicmd->Indication_Emergency();
             }
             if(!digitalRead(InputPin[IN00_EmergencyPin])){
                 runtimedata.IndicationEmergency = false;
@@ -660,7 +657,7 @@ bool LightBoxSearchSensor()
 			{
 				if(getStationSensor() != 0)
 					runtimedata.Workindex[WORKINDEX_SEARCH_SENSOR] += 10;
-				else //沒有在站號上(基本上不會遇到此情況)
+				else //沒有在站號上
 				{
 					searchtoggletimes = 2;
 					searchcnt ++;
@@ -718,20 +715,6 @@ uint8_t getStationSensor()
     if(getInput(IN04_Pos_3_Pin)) station = 3;
 	return station;	
 }
-
-void ReadPositionSensor()
-{
-    for(int i = 2; i<5; i++){
-        if(digitalRead(InputPin[i]))
-            {setbit(runtimedata.ReadInput, i-2);  }
-        else
-            {clrbit(runtimedata.ReadInput, i-2);  }
-    }
-    if(runtimedata.ReadInput != 0){
-        runtimedata.PositionInput = runtimedata.ReadInput;
-    }
-}
-
 
 void buzzerPlay(int ms)
 {

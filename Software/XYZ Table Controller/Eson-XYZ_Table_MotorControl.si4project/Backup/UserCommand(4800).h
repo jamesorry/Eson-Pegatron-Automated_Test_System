@@ -7,7 +7,6 @@ typedef struct __CMD {
   const char* cmd;
   void (*func)(void);
 } CMD, *PCMD;
-
 void cmd_Maindata(void);
 void cmd_UpdateEEPROM(void);
 void cmd_ClearEEPROM(void);
@@ -22,14 +21,14 @@ void echoOff(void);
 void cmd_CodeVer(void);
 void showHelp(void);
 bool getNextArg(String &arg);
-void UserCommand_Timer(void);
-void UserCommand_Task(void);
 
 void cmd_WriteToSerial(void);
 void cmd_WorkIndex(void);
 void cmdHMIID(void);
 void cmd_SetDO(void);
 void cmd_GetDO(void);
+
+void UserCommand_Task(void);
 
 void cmdMotorStep();
 void cmdMotorMoveTo(void);
@@ -57,6 +56,8 @@ void cmdOutput(void);
 void cmdSearchSensor(void);
 void cmdgoHome();
 void cmdInit(void);
+
+
 void cmdHMITest(void);
 
 #endif //_USER_COMMAND_H_
