@@ -58,7 +58,6 @@ public:
   bool Indication_Emergency();
   bool Response_VR_Home_Offset();
   bool Response_Motor_Search_Home();
-  bool Response_Motor_StopPin_Offset();
   void Set_HMIID(uint8_t id);
 
   void CommandTest();
@@ -87,7 +86,7 @@ public:
 #define HMI_CMD_EMERGENCY_INDICATION    0x0A
 #define HMI_CMD_VR_HOME_OFFSET          0x0D
 #define HMI_CMD_MOTOR_SEARCH_HOME       0x0E
-#define HMI_CMD_MOTOR_STOP_PIN_OFFSET   0x0F
+
 
 #define HMI_CMD_BYTE_TAGID 0
 #define HMI_CMD_BYTE_LENGTH 1

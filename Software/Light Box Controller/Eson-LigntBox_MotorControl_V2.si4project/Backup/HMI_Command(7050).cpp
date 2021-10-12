@@ -776,35 +776,6 @@ bool HMI_Command::Response_Motor_Search_Home()
     return true;
 }
 
-bool HMI_Command::Response_Motor_StopPin_Offset()
-{
-    long step = 0;
-    for(uint8_t i=0; i<4; i++)
-    {
-        step <<= 8;
-        step += recdata[HMI_CMD_BYTE_DATA+i];
-    }
-    maindata.OffsetDistanceOfStopPin = step;
-    DEBUG("OffsetDistanceOfStopPin: " + String(maindata.OffsetDistanceOfStopPin));
-
-    HMICmdRec rec;
-    rec.datatype = QUEUE_DATA_TYPE_RESPONSE;
-    rec.data[HMI_CMD_BYTE_TAGID] = ResponseTagID;
-    rec.data[HMI_CMD_BYTE_LENGTH] = HMI_CMD_LEN_BASE;
-    rec.data[HMI_CMD_BYTE_CMDID] = HMI_CMD_MOTOR_STOP_PIN_OFFSET;
-    rec.data[HMI_CMD_BYTE_HMIID] = maindata.HMI_ID;
-    rec.data[rec.data[HMI_CMD_BYTE_LENGTH]-1] = HMI_CMD_ComputeCRC(rec.data);
-    rec.datalen = rec.data[HMI_CMD_BYTE_LENGTH];
-    rec.retrycnt = 0;
-    cmdQueue->push(&rec);
-
-#if HMI_CMD_DEBUG
-    cmd_port->println("Response_Motor_StopPin_Offset()");
-#endif
-    runtimedata.UpdateEEPROM = true;
-    return true;
-}
-
 
 uint8_t HMI_Command::CheckReciveData()
 {
@@ -922,10 +893,6 @@ uint8_t HMI_Command::CheckReciveData()
                     break;
                 case HMI_CMD_MOTOR_SEARCH_HOME:                    
                     cmd_port->println("HMI_CMD_MOTOR_SEARCH_HOME.");
-                    issupportcmd = Response_Motor_Search_Home();
-                    break;
-                case HMI_CMD_MOTOR_STOP_PIN_OFFSET:
-                    cmd_port->println("HMI_CMD_MOTOR_STOP_PIN_OFFSET.");
                     issupportcmd = Response_Motor_Search_Home();
                     break;
 			}

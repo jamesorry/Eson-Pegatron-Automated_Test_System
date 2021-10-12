@@ -418,7 +418,7 @@ bool MotorServoInit()
                     Motor[0]->Steps(maindata.OffsetDistanceOfStopPin, maindata.MotorSpeed[0]);
                 }
                 else{
-                    Motor[0]->Steps((-1)*maindata.OffsetDistanceOfStopPin, maindata.MotorSpeed[0]);
+                    Motor[0]->Steps(-1*maindata.OffsetDistanceOfStopPin, maindata.MotorSpeed[0]);
                 }
 			}
 			break;
