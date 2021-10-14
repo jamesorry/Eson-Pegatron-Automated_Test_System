@@ -439,7 +439,7 @@ bool HMI_Command::Response_Control_Board_Status()
     HMICmdRec rec;
     rec.datatype = QUEUE_DATA_TYPE_RESPONSE;
     rec.data[HMI_CMD_BYTE_TAGID] = ResponseTagID;
-    rec.data[HMI_CMD_BYTE_LENGTH] = HMI_CMD_LEN_BASE + 8;
+    rec.data[HMI_CMD_BYTE_LENGTH] = HMI_CMD_LEN_BASE + 7;
     rec.data[HMI_CMD_BYTE_CMDID] = HMI_CMD_CONTROL_BOARD_STATUS;
     rec.data[HMI_CMD_BYTE_HMIID] = maindata.HMI_ID;
     rec.data[HMI_CMD_BYTE_DATA] = motornum;
@@ -455,7 +455,6 @@ bool HMI_Command::Response_Control_Board_Status()
             DEBUG("Pos:" + String(Motor[motornum]->getPosition()));
             for(uint8_t i=0; i<4; i++)
                 rec.data[HMI_CMD_BYTE_DATA+3+i] = (Motor[motornum]->getPosition() >> (3-i)*8)& 0xff;
-            rec.data[HMI_CMD_BYTE_DATA + 7] = getStationSensor();
             break;
         case MOTOR_VR:
             if(Motor[motornum]->getState() == MOTOR_STATE_STOP)

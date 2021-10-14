@@ -4,7 +4,7 @@
 #include "Arduino.h"
 #include "SoftwareSerial.h"
 
-#define	VERSTR	"2021101401"
+#define	VERSTR	"2021101301"
 
 #define DEBUG(...) Serial.println(__VA_ARGS__); \
                    Serial.print(" @ [LINE]:     "); \

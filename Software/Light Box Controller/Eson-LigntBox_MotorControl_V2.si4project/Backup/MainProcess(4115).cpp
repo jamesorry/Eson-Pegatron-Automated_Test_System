@@ -411,24 +411,22 @@ bool MotorServoInit()
 			{
 			    DEBUG("MotorGoHome finish.");
                 runtimedata.Workindex[WORKINDEX_SERVO_INITIAL] += 10;
-                DEBUG("Now postion: " + String(Motor[MOTOR_SERVO]->getPosition()));
                 if(Motor[MOTOR_SERVO]->getAccelerateTime() == 0)
                     Motor[MOTOR_SERVO]->setAccelerateTime(200);
 				if(Motor[0]->getDirection() == MOTOR_CW) //正轉
                 {
-                    Motor[0]->Steps(maindata.OffsetDistanceOfStopPin);
+                    Motor[0]->Steps(maindata.OffsetDistanceOfStopPin, maindata.MotorSpeed[0]);
                 }
                 else{
                     Motor[0]->Steps((-1)*maindata.OffsetDistanceOfStopPin, maindata.MotorSpeed[0]);
                 }
-                
 			}
 			break;
 		case 20:
 			if(Motor[0]->getState() == MOTOR_STATE_STOP)
 			{
 				runtimedata.Workindex[WORKINDEX_SERVO_INITIAL] = 0xF0;
-                DEBUG("Now postion: " + String(Motor[MOTOR_SERVO]->getPosition()));
+                runtimedata.Station = getStationSensor();
                 DEBUG("Now station: " + String(runtimedata.Station));   
 				isfinish = true;
 				cmd_port->println("WORKINDEX_SERVO_INITIAL isfinish: " + String(runtimedata.Workindex[WORKINDEX_SERVO_INITIAL]));
@@ -504,9 +502,7 @@ bool MotorGoHome(int motornum)
                     && (getInput(IN03_Pos_2_Pin) == HIGH))
 				{
 				    DEBUG("Servo finish go home.");
-                    Motor[motornum]->setPosition(0);                    
-//                    runtimedata.Station = getStationSensor();
-                    runtimedata.Station = 2;
+                    Motor[motornum]->setPosition(0);
 					runtimedata.Workindex[WORKINDEX_GO_HOME] = 0xE0;
 				}
 			}

@@ -650,6 +650,7 @@ void cmd_Offset(void)
 {
     String arg1, arg2;
 	int motor,offset;
+	
 	getNextArg(arg1);
 	if( (arg1.length()==0))
 	{
@@ -676,7 +677,7 @@ void cmd_Offset(void)
     }
     else if(motor == MOTOR_VR){
         maindata.VR_HomeOffset = offset;
-        DEBUG("VR_HomeOffset: " + String(maindata.VR_HomeOffset));
+        DEBUG("VR_HomeOffset: " + String(maindata.VR_HomeOffset));     
     }
 }
 
