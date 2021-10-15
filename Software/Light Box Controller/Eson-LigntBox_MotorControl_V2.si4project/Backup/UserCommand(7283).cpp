@@ -673,12 +673,10 @@ void cmd_Offset(void)
     if(motor == MOTOR_SERVO){
         maindata.OffsetDistanceOfStopPin = offset;
         DEBUG("OffsetDistanceOfStopPin: " + String(maindata.OffsetDistanceOfStopPin));
-        runtimedata.UpdateEEPROM = true;
     }
     else if(motor == MOTOR_VR){
         maindata.VR_HomeOffset = offset;
         DEBUG("VR_HomeOffset: " + String(maindata.VR_HomeOffset));
-        runtimedata.UpdateEEPROM = true;
     }
 }
 

@@ -4,14 +4,13 @@
 #include "Arduino.h"
 #include "SoftwareSerial.h"
 
-#define	VERSTR	"2021101501"
+#define	VERSTR	"2021101401"
 
-#define DEBUG(...) Serial.print(", @ [FUNCTION]: "); \
-                   Serial.print(__func__); \
-                   Serial.print(" @ [LINE]: "); \
+#define DEBUG(...) Serial.println(__VA_ARGS__); \
+                   Serial.print(" @ [LINE]:     "); \
                    Serial.println(__LINE__); \
-                   Serial.print("-->"); \
-                   Serial.println(__VA_ARGS__); \
+                   Serial.print(" @ [FUNCTION]: "); \
+                   Serial.println(__func__);
 //                   Serial.print(" @ [SRC]:      "); \
 //                   Serial.println(__FILE__); \
 //

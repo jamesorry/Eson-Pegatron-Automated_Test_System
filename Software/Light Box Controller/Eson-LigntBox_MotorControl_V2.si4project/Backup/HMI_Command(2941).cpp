@@ -445,17 +445,10 @@ bool HMI_Command::Response_Control_Board_Status()
     rec.data[HMI_CMD_BYTE_DATA] = motornum;
     switch(motornum){
         case MOTOR_SERVO:
-            if(Motor[motornum]->getState() == MOTOR_STATE_STOP 
-                && (runtimedata.Workindex[WORKINDEX_GO_HOME] == 0xEE || runtimedata.Workindex[WORKINDEX_SEARCH_SENSOR] == 0xEE))
-            {
-                rec.data[HMI_CMD_BYTE_DATA+1] = 0xEE; //Error.                
-            }
-            else{
-                if(Motor[motornum]->getState() == MOTOR_STATE_STOP)
-                    rec.data[HMI_CMD_BYTE_DATA+1] = 0x00; //status Motor stop.
-                else
-                    rec.data[HMI_CMD_BYTE_DATA+1] = 0x01; //status Motor is running.
-            }
+            if(Motor[motornum]->getState() == MOTOR_STATE_STOP)
+                rec.data[HMI_CMD_BYTE_DATA+1] = 0x00; //status Motor stop.
+            else
+                rec.data[HMI_CMD_BYTE_DATA+1] = 0x01; //status Motor is running.
 //            rec.data[HMI_CMD_BYTE_DATA+2] = runtimedata.Station;//到站後才會更新
             rec.data[HMI_CMD_BYTE_DATA+2] = runtimedata.PositionInput;
             cmd_port->println("PositionInput: " + String(runtimedata.PositionInput, BIN));
@@ -747,15 +740,12 @@ bool HMI_Command::Response_Motor_Search_Home()
 {
     uint8_t motornum = recdata[HMI_CMD_BYTE_DATA];
 
-    if(Motor[MOTOR_SERVO]->getState() == MOTOR_STATE_STOP)    
+    if(runtimedata.RunMode[MOTOR_SERVO] == RUN_MODE_SERVO_NORMAL
+        && Motor[MOTOR_SERVO]->getState() == MOTOR_STATE_STOP)
     {
-        if(runtimedata.RunMode[MOTOR_SERVO] == RUN_MODE_SERVO_NORMAL 
-            || runtimedata.Workindex[WORKINDEX_GO_HOME] == 0xEE 
-            || runtimedata.Workindex[WORKINDEX_SEARCH_SENSOR] == 0xEE)
-        {
-            if(motornum == MOTOR_SERVO)
-            {
-                DEBUG("Need to Search home.");
+        if(motornum == MOTOR_SERVO)
+        {            
+            if(runtimedata.RunMode[MOTOR_SERVO] == RUN_MODE_SERVO_NORMAL){
                 runtimedata.RunMode[MOTOR_SERVO] = RUN_MODE_SERVO_INIT;
                 runtimedata.Workindex[WORKINDEX_SERVO_INITIAL] = 0;
                 runtimedata.Workindex[WORKINDEX_GO_HOME] = 0;
