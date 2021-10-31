@@ -5,7 +5,7 @@
 #include "OCRxA_Table.h"
 
 #define MOTOR_SPEED_MIN	1000
-#define MOTOR_SPEED_MAX	15000//20000
+#define MOTOR_SPEED_MAX	20000
 
 #define MOTOR_STATE_STOP				0x00
 #define MOTOR_STATE_ROTATE				0x01

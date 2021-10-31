@@ -12,7 +12,7 @@
 //                   Serial.print(" @ [SRC]:      "); \
 //                   Serial.println(__FILE__); \
 //
-#define	VERSTR	"2021103101"
+#define	VERSTR	"2021102601"
 
 #define setbit(value,x) (value |=(1<<x))
 #define getbit(value,x) ((value>>x)&1)
@@ -72,8 +72,8 @@ static const uint8_t ADC_PWMPin[] = {0, 0, 0, A8, 2, A9, 3, A10, 6, A11, 7, A12,
 									11, A13, 12, A14, 44, A15, 45, 0, 0};
 
 
-#define	CMD_PORT		    Serial	
-#define	CMD_PORT_BR		    115200
+#define	CMD_PORT		Serial	
+#define	CMD_PORT_BR		115200
 
 #define	HMI_CMD_PORT		Serial3	
 #define	HMI_CMD_PORT_BR		38400

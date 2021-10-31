@@ -303,12 +303,12 @@ bool HMI_Command::Response_ReadParameter()
     rec.data[HMI_CMD_BYTE_HMIID] = maindata.HMI_ID;
     rec.data[HMI_CMD_BYTE_DATA] = recdata[HMI_CMD_BYTE_DATA];
     cmd_port->println("Motor num: " + String(motornum));
-    cmd_port->println("Frequence: " + String(maindata.MotorSpeed[motornum]));
-    cmd_port->println("AccelerateTime: " + String(maindata.MotorAccelerateTime[motornum]));
+    cmd_port->println("Frequence: " + String(Motor[motornum]->getFrequence()));
+    cmd_port->println("AccelerateTime: " + String(Motor[motornum]->getAccelerateTime()));
 	for(uint8_t i=1; i<3; i++)
-		rec.data[HMI_CMD_BYTE_DATA+i] = (maindata.MotorSpeed[motornum] >> (2-i)*8)& 0xff;
+		rec.data[HMI_CMD_BYTE_DATA+i] = (Motor[motornum]->getFrequence() >> (2-i)*8)& 0xff;
 	for(uint8_t i=3; i<5; i++)
-		rec.data[HMI_CMD_BYTE_DATA+i] = (maindata.MotorAccelerateTime[motornum] >> (4-i)*8)& 0xff;
+		rec.data[HMI_CMD_BYTE_DATA+i] = (Motor[motornum]->getAccelerateTime() >> (4-i)*8)& 0xff;
     rec.data[rec.data[HMI_CMD_BYTE_LENGTH]-1] = HMI_CMD_ComputeCRC(rec.data);
     rec.datalen = rec.data[HMI_CMD_BYTE_LENGTH];
     rec.retrycnt = 0;
@@ -317,43 +317,28 @@ bool HMI_Command::Response_ReadParameter()
 #if HMI_CMD_DEBUG
     cmd_port->println("Response_ReadParameter()");
 #endif
+    
     return true;
 }
 bool HMI_Command::Response_WriteParameter()
 {
     uint8_t motornum = recdata[HMI_CMD_BYTE_DATA];
     long freq = 0, acceleration = 0;
-    uint8_t result = 0x00;
+    
+    for(uint8_t i=1; i<3; i++)
+    {
+        freq <<= 8;
+        freq += recdata[HMI_CMD_BYTE_DATA+i];
+    }
+    
+    for(uint8_t i=3; i<5; i++)
+    {
+        acceleration <<= 8;
+        acceleration += recdata[HMI_CMD_BYTE_DATA+i];
+    }
     cmd_port->println("Motor num: " + String(motornum));
-    if(motornum == MOTOR_X){
-        for(uint8_t i=1; i<3; i++)
-        {
-            freq <<= 8;
-            freq += recdata[HMI_CMD_BYTE_DATA+i];
-        }
-        cmd_port->println("freq: " + String(freq));
-        if(freq < MOTOR_SPEED_MIN || freq > MOTOR_SPEED_MAX)
-            result = 0x01;
-        else{
-            maindata.MotorSpeed[motornum] = freq;
-            Motor[motornum]->setFrequence(freq);
-        }
-        for(uint8_t i=3; i<5; i++)
-        {
-            acceleration <<= 8;
-            acceleration += recdata[HMI_CMD_BYTE_DATA+i];
-        }
-        cmd_port->println("acceleration: " + String(acceleration));
-        if(acceleration < 0 || acceleration > 5000)
-            result = 0x01;
-        else{
-            maindata.MotorAccelerateTime[motornum] = acceleration;
-            Motor[motornum]->setAccelerateTime(acceleration);
-        }
-    }
-    else{
-        result = 0x01;
-    }
+    cmd_port->println("freq: " + String(freq));
+    cmd_port->println("acceleration: " + String(acceleration));
     uint8_t i;
     HMICmdRec rec;
     rec.datatype = QUEUE_DATA_TYPE_RESPONSE;
@@ -361,7 +346,7 @@ bool HMI_Command::Response_WriteParameter()
     rec.data[HMI_CMD_BYTE_LENGTH] = HMI_CMD_LEN_BASE + 1;
     rec.data[HMI_CMD_BYTE_CMDID] = HMI_CMD_WRITE_PARAMETER;
     rec.data[HMI_CMD_BYTE_HMIID] = maindata.HMI_ID;
-    rec.data[HMI_CMD_BYTE_DATA] = result; //success.
+    rec.data[HMI_CMD_BYTE_DATA] = 0x00; //success.
     rec.data[rec.data[HMI_CMD_BYTE_LENGTH]-1] = HMI_CMD_ComputeCRC(rec.data);
     rec.datalen = rec.data[HMI_CMD_BYTE_LENGTH];
     rec.retrycnt = 0;
@@ -370,7 +355,7 @@ bool HMI_Command::Response_WriteParameter()
 #if HMI_CMD_DEBUG
     cmd_port->println("Response_WriteParameter()");
 #endif
-    runtimedata.UpdateEEPROM = true;
+    
     return true;
 }
 
@@ -391,6 +376,7 @@ bool HMI_Command::Response_Motor_Stop()
 #if HMI_CMD_DEBUG
     cmd_port->println("Response_Motor_Stop()");
 #endif
+    Motor[MOTOR_X]->Stop();
     runtimedata.RunMode = RUN_MODE_STOP;
     return true;
 }
@@ -583,14 +569,10 @@ bool HMI_Command::Response_Motor_Move()
 #if HMI_CMD_DEBUG
     cmd_port->println("Response_Motor_Move()");
 #endif
-    if(movetype == 0x00){
-        Motor[motornum]->Steps(step, maindata.MotorSpeed[motornum]);
-    }
-    else if(movetype == 0x01){
-        Motor[motornum]->MoveTo(step, maindata.MotorSpeed[motornum]);
-        maindata.TargetPosition = step;
-        runtimedata.UpdateEEPROM = true;
-    }
+    if(movetype == 0x00)
+        Motor[motornum]->Steps(step, Motor[motornum]->getFrequence());
+    else if(movetype == 0x01)
+        Motor[motornum]->MoveTo(step, Motor[motornum]->getFrequence());
     return true;
 }
 

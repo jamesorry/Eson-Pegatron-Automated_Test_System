@@ -18,22 +18,17 @@
 #define	INPUT_NONE_ACTIVE	0
 #define	INPUT_ACTIVE		1
 
-//總共有14個Sensor，前後極限各1個，急停1個，原點1個，位置10個
 #define IN00_EmergencyPin       0
 #define IN01_FrontLimitPin      1
-#define IN02_HomePin            2
-#define IN13_BackLimitPin       13
+#define IN02_BackLimitPin       2
 
 #define RUN_MODE_EMERGENCY		-1
 #define RUN_MODE_STOP		    0
 #define RUN_MODE_GO_HOME        1
 #define RUN_MODE_INIT           2
-#define RUN_MODE_NORMAL         3
 
 #define WORKINDEX_TOTAL		4
 #define WORKINDEX_GO_HOME   0
-#define WORKINDEX_INIT      1
-
 typedef struct _DigitalIO_
 {
 	uint8_t	Input[(INPUT_8_NUMBER+EXTIO_NUM)*8];
@@ -45,11 +40,10 @@ typedef struct _MainDataStruct_
 {
 	char        Vendor[10];
 	uint8_t 	HMI_ID;
-	long		MotorSpeed[MOTOR_TOTAL];
-	long		MotorFrequenceStart[MOTOR_TOTAL];
-	long		MotorAccelerateTime[MOTOR_TOTAL];
-    long        CheckVersion;
-    long        TargetPosition;
+	long		MotorSpeed[3];
+	long		MotorFrequenceStart[3];
+	long		MotorAccelerateTime[3];
+    long		MotorResolution[3];
 }MainDataStruct;
 
 
@@ -70,7 +64,11 @@ typedef struct _RuntimeStruct_
     bool        NeedRestart = false;
 }RuntimeStatus;
 
-#define MOTOR_SPEED_NORMAL		    1500
+
+#define TIME_SENSOR_CONFIRM			300
+#define TIME_READ_RFID_FAIL			3000
+
+#define MOTOR_SPEED_NORMAL		    1000
 
 void MainProcess_Timer();
 void MainProcess_Task();
@@ -81,7 +79,5 @@ uint8_t getInput(uint8_t index);
 void buzzerPlay(int ms);
 void ReadPositionSensor();
 bool Go_Home();
-bool MotorInit();
-void MotorServoSearchSensor(int pin, uint8_t HL, int dir=0, int toggletimes=0);
 
 #endif	//_MAIN_PROCESS_H_

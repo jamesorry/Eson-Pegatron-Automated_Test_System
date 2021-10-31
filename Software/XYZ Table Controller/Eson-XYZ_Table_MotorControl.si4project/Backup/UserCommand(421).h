@@ -35,6 +35,7 @@ void cmdMotorStep();
 void cmdMotorMoveTo(void);
 void cmdMotorMoveToStopPin(void);
 void cmdMotorFreq(void);
+void cmdMotorResolution(void);
 void cmdMotorSetRotateMode(void);
 void cmdMotorStop(void);
 void cmdMotorAccelerate(void);

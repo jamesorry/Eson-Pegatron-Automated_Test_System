@@ -43,6 +43,7 @@ CMD g_cmdFunc[] = {
 	{"moveto", cmdMotorMoveTo},
 	{"movetostoppin", cmdMotorMoveToStopPin},
 	{"freq", cmdMotorFreq},
+    {"resolution", cmdMotorResolution},   
 	{"rm", cmdMotorSetRotateMode},
 	{"stop", cmdMotorStop},
 	{"acc", cmdMotorAccelerate},
@@ -98,15 +99,7 @@ bool getNextArg(String &arg)
 
 void cmd_Maindata(void)
 {
-    READ_EEPROM();
     cmd_port->println("HMI_ID:" + String(maindata.HMI_ID));
-    for(uint8_t i=0; i<MOTOR_TOTAL; i++){
-        cmd_port->println("Speed " +String(i) + ":" + String(maindata.MotorSpeed[i]));
-        cmd_port->println("FrequenceStart " +String(i) + ":" + String(maindata.MotorFrequenceStart[i]));
-        cmd_port->println("AccelerateTime " +String(i) + ":" + String(maindata.MotorAccelerateTime[i]));        
-    }
-    cmd_port->println("TargetPosition: " + String(maindata.TargetPosition));
-    cmd_port->println("CheckVersion: " + String(maindata.CheckVersion));
 }
 void cmd_UpdateEEPROM(void)
 {
@@ -655,6 +648,49 @@ void cmdMotorFreq(void)
 	}
 		
 }
+
+void cmdMotorResolution(void)
+{
+	String arg1, arg2;
+	unsigned long motorNumber, resolution;
+
+	getNextArg(arg1);
+	if(arg1.length() == 0)
+	{
+		cmd_port->println("Please input enough parameters");
+		return;
+	}
+	motorNumber = arg1.toInt();
+	if(getNextArg(arg2))
+	{
+		resolution = arg2.toInt();
+		switch(motorNumber)
+		{
+			case 0: 
+			case 1: 
+			case 2: 
+				maindata.MotorResolution[motorNumber] = resolution;
+				runtimedata.UpdateEEPROM = true;
+				break;
+			default: cmd_port->println("unknown Motor number"); break;
+		}
+	}
+	else
+	{
+		switch(motorNumber)
+		{
+			case 0: 
+			case 1: 
+			case 2: 
+				resolution = maindata.MotorResolution[motorNumber]; 
+				cmd_port->println("Motor " + String(motorNumber) + " Frequence: " + String(resolution));
+				break;
+			default: cmd_port->println("unknown Motor number"); break;
+		}
+	}
+		
+}
+
 
 void cmdMotorSetRotateMode(void)
 {
