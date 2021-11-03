@@ -6,7 +6,7 @@
 
 #define MOTOR_X             0
 #define MOTOR_TOTAL         1
-#define SPEED_GO_HOME       6000
+#define SPEED_GO_HOME       8000
 #define SPEED_SEARCH_SENSOR 1500
 
 #define	EXTIO_NUM		0

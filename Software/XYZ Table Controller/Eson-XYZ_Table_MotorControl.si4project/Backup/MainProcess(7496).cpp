@@ -142,8 +142,6 @@ void MainProcess_Init()
 		}
 	Motor[MOTOR_X] = new StepperMotor(2, A8, 10000, 1000);
     Motor[MOTOR_X]->setLimitPin(InputPin[IN01_FrontLimitPin], LOW, InputPin[IN13_BackLimitPin], LOW); //LOW時停下來
-    Motor[MOTOR_X]->setAccelerateTime(maindata.MotorAccelerateTime[MOTOR_X]);
-    cmd_port->println("ACC:" + String(Motor[MOTOR_X]->getAccelerateTime()));
 }
 
 void ReadDigitalInput()

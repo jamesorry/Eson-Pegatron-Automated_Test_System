@@ -66,7 +66,6 @@ CMD g_cmdFunc[] = {
 	{"in", cmdInput},
 	{"runmode", cmdRunMode},
 	{"hmitest", cmdHMITest},
-    {"Acctime", cmd_SetAcctime},
 	{"?", showHelp}
 };
 
@@ -417,38 +416,6 @@ void cmd_CodeVer(void)
 	cmd_port->println(VERSTR);
 }
 
-void cmd_SetAcctime()
-{    
-    String arg1, arg2;
-    long motorNumber, Acctime;
-
-    getNextArg(arg1);
-    getNextArg(arg2);
-    if( (arg1.length()==0))
-    {
-        cmd_port->println("Please input enough parameters");
-        return;
-    }
-    if( (arg2.length()==0))
-    {
-        cmd_port->println("Please input enough parameters 2");
-        return;
-    }
-    motorNumber = arg1.toInt();
-    Acctime = arg2.toInt();
-    switch(motorNumber)
-    {
-        case 0: 
-        case 1: 
-        case 2: 
-            maindata.MotorAccelerateTime[motorNumber] = Acctime;        
-            Motor[motorNumber]->setAccelerateTime(maindata.MotorAccelerateTime[motorNumber]);
-            cmd_port->println("ACC:" + String(Motor[motorNumber]->getAccelerateTime()));
-            runtimedata.UpdateEEPROM = true;
-            break;
-        default: cmd_port->println("unknown Motor number"); break;
-    }
-}
 void cmdRunMode(void)
 {
 	String arg1, arg2;
@@ -542,8 +509,8 @@ void cmdMotorStep(void)
 			case 0: 
 			case 1: 
 			case 2: 
-				if(Motor[MOTOR_X]->getAccelerateTime() <= 200)
-                    Motor[MOTOR_X]->setAccelerateTime(maindata.MotorAccelerateTime[MOTOR_X]);
+				if(Motor[motorNumber]->getAccelerateTime() == 0)
+					Motor[motorNumber]->setAccelerateTime(200);
 				Motor[motorNumber]->Steps(stepToMove, frequece); 
 				break;
 		}
@@ -584,9 +551,7 @@ void cmdMotorMoveTo(void)
 		{
 			case 0: 
 			case 1: 
-			case 2:
-                if(Motor[MOTOR_X]->getAccelerateTime() <= 200)
-                    Motor[MOTOR_X]->setAccelerateTime(maindata.MotorAccelerateTime[MOTOR_X]);
+			case 2: 
 				Motor[motorNumber]->MoveTo(targetposition, frequece); 
 				break;
 		}
@@ -769,7 +734,7 @@ void cmdMotorAccelerate(void)
         case 0: 
         case 1: 
         case 2: 
-        	Motor[motorNumber]->Accelerate();
+        	Motor[motorNumber]->Accelerate(); 
         	break;
         default: cmd_port->println("unknown Motor number"); break;
     }

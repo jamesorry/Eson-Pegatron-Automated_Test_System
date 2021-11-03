@@ -1500,9 +1500,9 @@ unsigned int StepperMotor::Speed(long freq, long freqstartup, int accmsec)
 	setFrequenceStartup(freqstartup);
 
 	setFrequence(freq);
-
+	accmsec = 200;
 	setAccelerateTime(accmsec);
-	if(AccelerateTime == 0)
+	if(AccelerateTime == 200)
 		FrequenceNow = Frequence;
 	else
 	{

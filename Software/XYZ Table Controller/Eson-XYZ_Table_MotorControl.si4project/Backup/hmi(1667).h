@@ -12,7 +12,7 @@
 //                   Serial.print(" @ [SRC]:      "); \
 //                   Serial.println(__FILE__); \
 //
-#define	VERSTR	"2021110301"
+#define	VERSTR	"2021103101"
 
 #define setbit(value,x) (value |=(1<<x))
 #define getbit(value,x) ((value>>x)&1)

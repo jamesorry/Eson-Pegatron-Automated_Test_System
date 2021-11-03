@@ -1,0 +1,68 @@
+#include "HMI.h"
+#include <SPI.h>
+#include "Timer.h"
+#include "MainProcess.h"
+#include "UserCommand.h"
+#include "HMI_Command.h"
+#include "StepperMotor.h"
+#include "EEPROM_Function.h"
+
+extern StepperMotor *Motor[];
+extern RuntimeStatus runtimedata;
+extern MainDataStruct maindata;
+
+HMI_Command *hmicmd;
+
+#define INO_DEBUG 1
+
+#if INO_DEBUG
+    HardwareSerial *cmd_port;
+#endif
+
+void setup()
+{
+	cmd_port = &CMD_PORT;
+	cmd_port->begin(CMD_PORT_BR);
+	READ_EEPROM();
+	MainProcess_Init();	
+	TimerInit(1, 10000);
+	hmicmd = new HMI_Command(&HMI_CMD_PORT, HMI_CMD_PORT_BR);
+	buzzerPlay(500);
+#if INO_DEBUG
+	cmd_port->print("Version: ");
+	cmd_port->println(VERSTR);
+	cmd_port->println("End of setup().");
+#endif
+}
+
+void loop()
+{
+	MainProcess_Task();
+	UserCommand_Task();
+    hmicmd->Process();
+	if(runtimedata.UpdateEEPROM)
+	{
+		runtimedata.UpdateEEPROM = false;
+		WRITE_EEPROM();
+	}
+}
+
+ISR(TIMER1_COMPA_vect)
+{
+    MainProcess_Timer();
+    UserCommand_Timer();
+    if(digitalRead(InputPin[IN00_EmergencyPin]) 
+        && runtimedata.RunMode != RUN_MODE_EMERGENCY)
+    {
+        runtimedata.RunMode = RUN_MODE_STOP;
+        runtimedata.IndicationEmergency = true;
+    }
+}
+
+
+//for PWM 2
+ISR(TIMER3_COMPB_vect)          // timer compare interrupt service routine
+{
+	Motor[MOTOR_X]->TimerProcess(TIMER3_COMPB_vect_num);
+}
+

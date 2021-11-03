@@ -24,7 +24,7 @@ extern StepperMotor *Motor[];
 CMD g_cmdFunc[] = {
     {"SD", cmd_UpdateEEPROM},
     {"CD", cmd_ClearEEPROM},
-    {"RD", cmd_Maindata},
+    {"SD", cmd_Maindata},
 	{"adc", getAdc},
 	{"getgpio", getGpio},
 	{"setgpio", setGpio},
@@ -66,7 +66,6 @@ CMD g_cmdFunc[] = {
 	{"in", cmdInput},
 	{"runmode", cmdRunMode},
 	{"hmitest", cmdHMITest},
-    {"Acctime", cmd_SetAcctime},
 	{"?", showHelp}
 };
 
@@ -417,38 +416,6 @@ void cmd_CodeVer(void)
 	cmd_port->println(VERSTR);
 }
 
-void cmd_SetAcctime()
-{    
-    String arg1, arg2;
-    long motorNumber, Acctime;
-
-    getNextArg(arg1);
-    getNextArg(arg2);
-    if( (arg1.length()==0))
-    {
-        cmd_port->println("Please input enough parameters");
-        return;
-    }
-    if( (arg2.length()==0))
-    {
-        cmd_port->println("Please input enough parameters 2");
-        return;
-    }
-    motorNumber = arg1.toInt();
-    Acctime = arg2.toInt();
-    switch(motorNumber)
-    {
-        case 0: 
-        case 1: 
-        case 2: 
-            maindata.MotorAccelerateTime[motorNumber] = Acctime;        
-            Motor[motorNumber]->setAccelerateTime(maindata.MotorAccelerateTime[motorNumber]);
-            cmd_port->println("ACC:" + String(Motor[motorNumber]->getAccelerateTime()));
-            runtimedata.UpdateEEPROM = true;
-            break;
-        default: cmd_port->println("unknown Motor number"); break;
-    }
-}
 void cmdRunMode(void)
 {
 	String arg1, arg2;
@@ -457,32 +424,21 @@ void cmdRunMode(void)
 	if(getNextArg(arg1))
 	{
 		runtimedata.RunMode = arg1.toInt();
-        for(uint8_t i=0; i<WORKINDEX_TOTAL; i++)
-            runtimedata.Workindex[i] = 0;
-//		runtimedata.Workindex[runtimedata.RunMode] = 0;
+		runtimedata.Workindex[runtimedata.RunMode] = 0;
 	}
 	cmd_port->println("Run mode: " + String(runtimedata.RunMode));
-    
 }
 
 void cmdHMITest(void)
 {
 	String arg1, arg2;
-	if(!getNextArg(arg1))
+	if(getNextArg(arg1))
 	{
         
     }
-    cmd_port->print("PositionInput: ");
-    for(int i = 10; i >= 0; i--)
+    for(int i = 0; i<13; i++)
         cmd_port->print(getbit(runtimedata.PositionInput, i));
     cmd_port->println();
-    
-    if(Motor[MOTOR_X]->getState() == MOTOR_STATE_STOP)
-        cmd_port->println("Motor stop"); //status Motor stop.
-    else
-        cmd_port->println("Motor is running"); //status Motor is running.
-//    cmd_port->println("PositionInput: " + String(runtimedata.PositionInput, BIN));
-    DEBUG("Pos:" + String(Motor[MOTOR_X]->getPosition()));
 }
 
 void cmdgetsetPosition(void)
@@ -542,8 +498,8 @@ void cmdMotorStep(void)
 			case 0: 
 			case 1: 
 			case 2: 
-				if(Motor[MOTOR_X]->getAccelerateTime() <= 200)
-                    Motor[MOTOR_X]->setAccelerateTime(maindata.MotorAccelerateTime[MOTOR_X]);
+				if(Motor[motorNumber]->getAccelerateTime() == 0)
+					Motor[motorNumber]->setAccelerateTime(200);
 				Motor[motorNumber]->Steps(stepToMove, frequece); 
 				break;
 		}
@@ -584,9 +540,7 @@ void cmdMotorMoveTo(void)
 		{
 			case 0: 
 			case 1: 
-			case 2:
-                if(Motor[MOTOR_X]->getAccelerateTime() <= 200)
-                    Motor[MOTOR_X]->setAccelerateTime(maindata.MotorAccelerateTime[MOTOR_X]);
+			case 2: 
 				Motor[motorNumber]->MoveTo(targetposition, frequece); 
 				break;
 		}
@@ -769,7 +723,7 @@ void cmdMotorAccelerate(void)
         case 0: 
         case 1: 
         case 2: 
-        	Motor[motorNumber]->Accelerate();
+        	Motor[motorNumber]->Accelerate(); 
         	break;
         default: cmd_port->println("unknown Motor number"); break;
     }

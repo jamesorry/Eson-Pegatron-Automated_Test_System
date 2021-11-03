@@ -559,6 +559,7 @@ bool HMI_Command::Response_Motor_Move()
     uint8_t movetype = recdata[HMI_CMD_BYTE_DATA];
     uint8_t motornum = recdata[HMI_CMD_BYTE_DATA+1];
     long step = 0;
+    
     for(uint8_t i=2; i<6; i++)
     {
         step <<= 8;
@@ -567,9 +568,6 @@ bool HMI_Command::Response_Motor_Move()
     cmd_port->println("Move type: " + String(movetype));
     cmd_port->println("Motor num: " + String(motornum));
     cmd_port->println("step: " + String(step));
-    if(runtimedata.RunMode != RUN_MODE_NORMAL){
-        return 0;
-    }
     uint8_t i;
     HMICmdRec rec;
     rec.datatype = QUEUE_DATA_TYPE_RESPONSE;
@@ -585,14 +583,10 @@ bool HMI_Command::Response_Motor_Move()
 #if HMI_CMD_DEBUG
     cmd_port->println("Response_Motor_Move()");
 #endif
-    if(movetype == 0x00){        
-        if(Motor[motornum]->getAccelerateTime() <= 200)
-            Motor[motornum]->setAccelerateTime(maindata.MotorAccelerateTime[motornum]);
+    if(movetype == 0x00){
         Motor[motornum]->Steps(step, maindata.MotorSpeed[motornum]);
     }
     else if(movetype == 0x01){
-        if(Motor[motornum]->getAccelerateTime() <= 200)
-            Motor[motornum]->setAccelerateTime(maindata.MotorAccelerateTime[motornum]);
         Motor[motornum]->MoveTo(step, maindata.MotorSpeed[motornum]);
         maindata.TargetPosition = step;
         runtimedata.UpdateEEPROM = true;
@@ -635,6 +629,7 @@ bool HMI_Command::Indication_Emergency()
     rec.datalen = rec.data[HMI_CMD_BYTE_LENGTH];
     rec.retrycnt = 0;
     cmdQueue->push(&rec);
+
 #if HMI_CMD_DEBUG
     cmd_port->println("Indication_Emergency()");
 #endif

@@ -75,14 +75,14 @@ void MainProcess_ReCheckEEPROMValue()
 	{
 		maindata.HMI_ID = 0;
 	}
-	if(maindata.CheckVersion != 110301){
+	if(maindata.CheckVersion != 103101){
         maindata.TargetPosition = 0;
         for(uint8_t i=0; i<MOTOR_TOTAL; i++){
-            maindata.MotorSpeed[i] = 3000;
+            maindata.MotorSpeed[i] = 1500;
             maindata.MotorFrequenceStart[i] = 1000;
-            maindata.MotorAccelerateTime[i] = 500;
+            maindata.MotorAccelerateTime[i] = 300;
         }
-        maindata.CheckVersion = 110301;
+        maindata.CheckVersion = 103101;
     }
 	runtimedata.UpdateEEPROM = true;
 }
@@ -93,8 +93,7 @@ void MainProcess_Init()
 	int i,j;
 	runtimedata.UpdateEEPROM = false;
 	MainProcess_ReCheckEEPROMValue();
-//	runtimedata.RunMode = RUN_MODE_NORMAL;
-    runtimedata.RunMode = RUN_MODE_GO_HOME;
+	runtimedata.RunMode = RUN_MODE_NORMAL;
 
 	for(i=0; i<WORKINDEX_TOTAL; i++)
 		runtimedata.Workindex[i] = 0;
@@ -142,8 +141,6 @@ void MainProcess_Init()
 		}
 	Motor[MOTOR_X] = new StepperMotor(2, A8, 10000, 1000);
     Motor[MOTOR_X]->setLimitPin(InputPin[IN01_FrontLimitPin], LOW, InputPin[IN13_BackLimitPin], LOW); //LOW時停下來
-    Motor[MOTOR_X]->setAccelerateTime(maindata.MotorAccelerateTime[MOTOR_X]);
-    cmd_port->println("ACC:" + String(Motor[MOTOR_X]->getAccelerateTime()));
 }
 
 void ReadDigitalInput()
@@ -267,16 +264,14 @@ void MainProcess_Task()
 	switch(runtimedata.RunMode)
 	{
         case RUN_MODE_EMERGENCY:
-            if(EmergencyTimeCnt > 1500 && runtimedata.IndicationEmergency){
+            if(EmergencyTimeCnt > 3000){
                 EmergencyTimeCnt = 0;
                 hmicmd->Indication_Emergency();
             }
             if(!digitalRead(InputPin[IN00_EmergencyPin]))
             {//解除緊急停止開關
                 runtimedata.IndicationEmergency = false;
-                runtimedata.RunMode = RUN_MODE_GO_HOME;                
-                for(uint8_t i=0; i<WORKINDEX_TOTAL; i++)
-                    runtimedata.Workindex[i] = 0;
+                runtimedata.RunMode = RUN_MODE_GO_HOME;
             }
             break;
 	    case RUN_MODE_STOP:
@@ -321,7 +316,6 @@ bool MotorInit()
             break;
         case 10:
             Motor[MOTOR_X]->MoveTo(maindata.TargetPosition, maindata.MotorSpeed[MOTOR_X]);
-            runtimedata.Workindex[WORKINDEX_INIT] += 10;
             break;
         case 20:
             if(Motor[MOTOR_X]->getState() == MOTOR_STATE_STOP)
@@ -358,12 +352,11 @@ bool Go_Home()
             }
             break;
         case 30:
-            MotorServoSearchSensor(IN02_HomePin, HIGH ,MOTOR_CW);
+            MotorServoSearchSensor(IN02_HomePin, LOW ,MOTOR_CW);
             runtimedata.Workindex[WORKINDEX_GO_HOME] += 10;
             break;
         case 40:
             if(Motor[MOTOR_X]->getState() == MOTOR_STATE_STOP){
-                Motor[MOTOR_X]->setPosition(0); 
                 runtimedata.Workindex[WORKINDEX_GO_HOME] += 10;
             }
             break;
@@ -390,7 +383,7 @@ void MotorServoSearchSensor(int pin, uint8_t HL, int dir,  int toggletimes)
 {
 	Motor[MOTOR_X]->setStopPin(InputPin[pin], HL, toggletimes);
 	if(dir == MOTOR_CCW)
-		Motor[MOTOR_X]->Speed(-SPEED_SEARCH_SENSOR, maindata.MotorFrequenceStart[MOTOR_X], maindata.MotorAccelerateTime[MOTOR_X]);
+		Motor[MOTOR_X]->Speed(-maindata.MotorSpeed[MOTOR_X], maindata.MotorFrequenceStart[MOTOR_X], maindata.MotorAccelerateTime[MOTOR_X]);
 	else if(dir == MOTOR_CW)
-		Motor[MOTOR_X]->Speed(SPEED_SEARCH_SENSOR, maindata.MotorFrequenceStart[MOTOR_X], maindata.MotorAccelerateTime[MOTOR_X]);
+		Motor[MOTOR_X]->Speed(maindata.MotorSpeed[MOTOR_X], maindata.MotorFrequenceStart[MOTOR_X], maindata.MotorAccelerateTime[MOTOR_X]);
 }

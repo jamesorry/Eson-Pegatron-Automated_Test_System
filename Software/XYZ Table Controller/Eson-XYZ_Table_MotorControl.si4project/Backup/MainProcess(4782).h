@@ -6,8 +6,7 @@
 
 #define MOTOR_X             0
 #define MOTOR_TOTAL         1
-#define SPEED_GO_HOME       6000
-#define SPEED_SEARCH_SENSOR 1500
+#define SPEED_GO_HOME       1000
 
 #define	EXTIO_NUM		0
 #define	INPUT_8_NUMBER	1
@@ -21,9 +20,9 @@
 
 //總共有14個Sensor，前後極限各1個，急停1個，原點1個，位置10個
 #define IN00_EmergencyPin       0
-#define IN01_FrontLimitPin      13
+#define IN01_FrontLimitPin      1
 #define IN02_HomePin            2
-#define IN13_BackLimitPin       1
+#define IN13_BackLimitPin       13
 
 #define RUN_MODE_EMERGENCY		-1
 #define RUN_MODE_STOP		    0

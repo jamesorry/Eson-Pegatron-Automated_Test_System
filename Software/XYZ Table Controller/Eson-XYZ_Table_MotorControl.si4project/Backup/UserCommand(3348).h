@@ -57,6 +57,5 @@ void cmdSearchSensor(void);
 void cmdgoHome();
 void cmdInit(void);
 void cmdHMITest(void);
-void cmd_SetAcctime();
 
 #endif //_USER_COMMAND_H_
