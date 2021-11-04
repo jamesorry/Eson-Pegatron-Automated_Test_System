@@ -282,8 +282,8 @@ void MainProcess_Task()
 	    case RUN_MODE_STOP:
             if(Motor[MOTOR_X]->getState() != MOTOR_STATE_STOP){
                 Motor[MOTOR_X]->Stop();
+                runtimedata.RunMode = RUN_MODE_NORMAL;
             }
-            runtimedata.RunMode = RUN_MODE_NORMAL;
             if(runtimedata.IndicationEmergency){
                 runtimedata.RunMode = RUN_MODE_EMERGENCY;
             }
@@ -349,7 +349,7 @@ bool Go_Home()
             runtimedata.Workindex[WORKINDEX_GO_HOME] += 10;
             break;
         case 10:
-            Motor[MOTOR_X]->Speed(-SPEED_GO_HOME, maindata.MotorFrequenceStart[MOTOR_X], maindata.MotorAccelerateTime[MOTOR_X]);
+            Motor[MOTOR_X]->Speed(-SPEED_GO_HOME);
             runtimedata.Workindex[WORKINDEX_GO_HOME] += 10;
             break;
         case 20:

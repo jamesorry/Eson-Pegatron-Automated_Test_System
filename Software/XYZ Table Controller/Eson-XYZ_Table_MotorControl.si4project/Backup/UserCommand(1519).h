@@ -40,7 +40,7 @@ void cmdMotorStop(void);
 void cmdMotorAccelerate(void);
 void cmdMotorSlowdown(void);
 void cmdMotorSlowdownStop(void);
-void cmdMotorGetSetFreq(void);
+void cmdMotorGetFreq(void);
 void cmdMotorSetRPM(void);
 void cmdSetStopPin(void);
 void cmdSetStopGpioPin(void);

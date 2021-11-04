@@ -48,7 +48,7 @@ CMD g_cmdFunc[] = {
 	{"acc", cmdMotorAccelerate},
 	{"sd", cmdMotorSlowdown},
 	{"sstop", cmdMotorSlowdownStop},
-	{"getsetfreq", cmdMotorGetSetFreq},
+	{"getfreq", cmdMotorGetFreq},
 	{"speed", cmdMotorSpeed},
 	{"rpm", cmdMotorSetRPM},
 	{"slowdownpin", cmdSetSlowdownPin},
@@ -822,50 +822,11 @@ void cmdMotorSlowdownStop(void)
 }
 
 
-void cmdMotorGetSetFreq(void)
+void cmdMotorGetFreq(void)
 {
-    String arg1, arg2;
-    long motorNumber, freq;
-
-    getNextArg(arg1);
-    if( (arg1.length()==0))
-    {        
-        cmd_port->println("Please input enough parameter");
-        return;
-    }
-    motorNumber = arg1.toInt();
-    getNextArg(arg2);
-    if( (arg2.length()==0))
-    {
-        switch(motorNumber)
-        {
-            case 0: 
-            case 1: 
-            case 2: 
-            	cmd_port->println("freq " + String(motorNumber) + " :" + String(maindata.MotorSpeed[motorNumber]));
-                break;
-            default: cmd_port->println("unknown Motor number"); break;
-        }
-        return;
-    }
-    else
-    {
-        freq = arg2.toInt();
-        if(freq > 15000)
-            return;
-        switch(motorNumber)
-        {
-            case 0: 
-            case 1: 
-            case 2:
-                maindata.MotorSpeed[motorNumber] = freq;
-            	cmd_port->println("freq " + String(motorNumber) + " :" + String(maindata.MotorSpeed[motorNumber]));
-                runtimedata.UpdateEEPROM = true;
-                break;
-            default: cmd_port->println("unknown Motor number"); break;
-        }
-    }
-    
+	cmd_port->println(String("motor0 freq:")+Motor[0]->getFrequence());
+	cmd_port->println(String("motor1 freq:")+Motor[1]->getFrequence());
+	cmd_port->println(String("motor2 freq:")+Motor[2]->getFrequence());
 }
 
 
