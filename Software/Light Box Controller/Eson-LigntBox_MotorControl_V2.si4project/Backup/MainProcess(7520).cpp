@@ -24,7 +24,6 @@ void MainProcess_Timer()
 
 void MainProcess_ReCheckEEPROMValue()
 {
-    uint8_t i;
 	if((maindata.HMI_ID < 0) || (maindata.HMI_ID > 128))
 	{
 		maindata.HMI_ID = 0;
@@ -37,25 +36,21 @@ void MainProcess_ReCheckEEPROMValue()
 	{
 		maindata.TargetStation = 2;
 	}
-    if(maindata.CheckVersion != 111001){
-        for(i=0; i<8; i++){
+    if(maindata.CheckVersion != 101002){
+        for(uint8_t i=0; i<8; i++){
             maindata.Output_Last_HighLow[i] = 0;    
         }
         maindata.OffsetDistanceOfStopPin = 0;
         maindata.VR_HomeOffset = 0;
         maindata.TargetStation = 2;
-        for(i=0; i<2; i++){
+        for(uint8_t i=0; i<2; i++){
             maindata.MotorSpeed[i] = 1500;
             maindata.MotorFrequenceStart[i] = 1000;
-            maindata.MotorAccelerateTime[i] = 500;
+            maindata.MotorAccelerateTime[i] = 300;
         }
-        for(i=0; i<3; i++){
+        for(uint8_t i=0; i<3; i++)
             maindata.StationPosition[i] = 0;
-        }        
-        for(i=0; i<4; i++){
-            maindata.StopPinOffset[i] = 0;
-        }
-        maindata.CheckVersion = 111001;
+        maindata.CheckVersion = 101002;
     }
     runtimedata.UpdateEEPROM = true;
 }
@@ -417,17 +412,16 @@ bool MotorServoInit()
 			    DEBUG("MotorGoHome finish.");
                 runtimedata.Workindex[WORKINDEX_SERVO_INITIAL] += 10;
                 DEBUG("Now postion: " + String(Motor[MOTOR_SERVO]->getPosition()));
-                //此站號應該為第2站
                 if(Motor[MOTOR_SERVO]->getAccelerateTime() == 0)
                     Motor[MOTOR_SERVO]->setAccelerateTime(maindata.MotorAccelerateTime[MOTOR_SERVO]);
 				if(Motor[MOTOR_SERVO]->getDirection() == MOTOR_CW) //正轉
                 {
-                    Motor[MOTOR_SERVO]->Steps(maindata.StopPinOffset[2], maindata.MotorSpeed[MOTOR_SERVO]);
+                    Motor[MOTOR_SERVO]->Steps(maindata.OffsetDistanceOfStopPin, maindata.MotorSpeed[MOTOR_SERVO]);
                 }
-                else
-                {
-                    Motor[MOTOR_SERVO]->Steps(maindata.StopPinOffset[1], maindata.MotorSpeed[MOTOR_SERVO]);
+                else{
+                    Motor[MOTOR_SERVO]->Steps((-1)*maindata.OffsetDistanceOfStopPin, maindata.MotorSpeed[MOTOR_SERVO]);
                 }
+                
 			}
 			break;
 		case 20:
@@ -710,29 +704,11 @@ bool LightBoxSearchSensor()
 			{
 				if(Motor[MOTOR_SERVO]->getState() == MOTOR_STATE_STOP)
 				{	//shift ?mm
-                    int steps = 0;
-                    switch(maindata.TargetStation)
-                    {
-                        case 1:
-                            if(Motor[MOTOR_SERVO]->getDirection() == MOTOR_CW)//正轉
-					            steps = maindata.StopPinOffset[0];
-					        else            
-                                steps = maindata.StopPinOffset[0];
-                            break;
-                        case 2:
-                            if(Motor[MOTOR_SERVO]->getDirection() == MOTOR_CW)//正轉
-                                steps = maindata.StopPinOffset[2];
-                            else            
-                                steps = maindata.StopPinOffset[1];
-                            break;
-                        case 3:
-                            if(Motor[MOTOR_SERVO]->getDirection() == MOTOR_CW)//正轉
-                                steps = maindata.StopPinOffset[3];
-                            else            
-                                steps = maindata.StopPinOffset[3];
-                            break;
-                    }
-                    DEBUG("steps: " + String(steps));
+					int steps = 0;
+					if(Motor[MOTOR_SERVO]->getDirection() == MOTOR_CW)//正轉
+						steps = maindata.OffsetDistanceOfStopPin;
+					else
+						steps = -maindata.OffsetDistanceOfStopPin;
 					if(Motor[MOTOR_SERVO]->getAccelerateTime() == 0)
 						Motor[MOTOR_SERVO]->setAccelerateTime(maindata.MotorAccelerateTime[MOTOR_SERVO]);
 					Motor[MOTOR_SERVO]->Steps(steps, maindata.MotorSpeed[MOTOR_SERVO]);

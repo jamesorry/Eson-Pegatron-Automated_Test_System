@@ -38,8 +38,6 @@ void cmdMotorGetFreq(void);
 void cmdgetsetPosition(void);
 void cmdSearchSensor();
 void cmd_Offset(void);
-void cmd_StopPinOffset(void);
-
 void UserCommand_Task(void);
 void UserCommand_Timer(void);
 

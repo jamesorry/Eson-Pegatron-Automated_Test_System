@@ -402,27 +402,31 @@ bool HMI_Command::Response_Control_Board_Status()
     HMICmdRec rec;
     rec.datatype = QUEUE_DATA_TYPE_RESPONSE;
     rec.data[HMI_CMD_BYTE_TAGID] = ResponseTagID;
-    rec.data[HMI_CMD_BYTE_LENGTH] = HMI_CMD_LEN_BASE;
+    rec.data[HMI_CMD_BYTE_LENGTH] = HMI_CMD_LEN_BASE + 8;
     rec.data[HMI_CMD_BYTE_CMDID] = HMI_CMD_CONTROL_BOARD_STATUS;
-    rec.data[HMI_CMD_BYTE_HMIID] = maindata.HMI_ID;
+    rec.data[HMI_CMD_BYTE_HMIID] = maindata.HMI_ID;    
     if(motornum == MOTOR_X)
     {
+        rec.data[HMI_CMD_BYTE_DATA] = motornum;
         if(Motor[motornum]->getState() == MOTOR_STATE_STOP)
             rec.data[HMI_CMD_BYTE_DATA+1] = 0x00; //status Motor stop.
         else
             rec.data[HMI_CMD_BYTE_DATA+1] = 0x01; //status Motor is running.
-        rec.data[HMI_CMD_BYTE_DATA+2] = runtimedata.PositionInput;
-        cmd_port->println("PositionInput: " + String(runtimedata.PositionInput, BIN));
+        if(runtimedata.RunMode == RUN_MODE_EMERGENCY){
+            rec.data[HMI_CMD_BYTE_DATA+1] = 0xEE; //status Motor is ERROR.
+        }
         DEBUG("Pos:" + String(Motor[motornum]->getPosition()));
         for(uint8_t i=0; i<4; i++)
-            rec.data[HMI_CMD_BYTE_DATA+3+i] = (Motor[motornum]->getPosition() >> (3-i)*8)& 0xff;
+            rec.data[HMI_CMD_BYTE_DATA+2+i] = (Motor[motornum]->getPosition() >> (3-i)*8)& 0xff;
+        cmd_port->println("PositionInput: " + String(runtimedata.PositionInput, BIN));
+        for(uint8_t i=0; i<2; i++)
+            rec.data[HMI_CMD_BYTE_DATA+6+i] = (runtimedata.PositionInput >> (1-i)*8)& 0xff;
     }
     else
     {
         DEBUG("Wrong motor num.");
         return false;
     }
-    rec.data[HMI_CMD_BYTE_DATA] = 0x00; //status normal.
     rec.data[rec.data[HMI_CMD_BYTE_LENGTH]-1] = HMI_CMD_ComputeCRC(rec.data);
     rec.datalen = rec.data[HMI_CMD_BYTE_LENGTH];
     rec.retrycnt = 0;

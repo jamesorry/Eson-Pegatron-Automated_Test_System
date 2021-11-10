@@ -290,39 +290,6 @@ bool HMI_Command::Response_Ping()
 	return true;
 }
 
-bool HMI_Command::Response_Set_Station()
-{
-    if(recdata[HMI_CMD_BYTE_DATA] <= 0x03 && recdata[HMI_CMD_BYTE_DATA] > 0x00){
-        if(runtimedata.RunMode[MOTOR_SERVO] == RUN_MODE_SERVO_NORMAL){
-            maindata.TargetStation = recdata[HMI_CMD_BYTE_DATA];
-            cmd_port->println("Target Station: " + String(maindata.TargetStation));
-            runtimedata.RunMode[MOTOR_SERVO] = RUN_MODE_SERVO_SEARCH_SENSOR;
-            runtimedata.Workindex[WORKINDEX_SEARCH_SENSOR] = 0;
-        }
-        else return false;
-    }
-    else {
-        cmd_port->println("Wrong Station: " + String(recdata[HMI_CMD_BYTE_DATA]));
-        return false;
-    }
-    uint8_t i;
-    HMICmdRec rec;
-    rec.datatype = QUEUE_DATA_TYPE_RESPONSE;
-    rec.data[HMI_CMD_BYTE_TAGID] = ResponseTagID;
-    rec.data[HMI_CMD_BYTE_LENGTH] = HMI_CMD_LEN_BASE;
-    rec.data[HMI_CMD_BYTE_CMDID] = HMI_CMD_SET_STATION;
-    rec.data[HMI_CMD_BYTE_HMIID] = maindata.HMI_ID;
-    rec.data[rec.data[HMI_CMD_BYTE_LENGTH]-1] = HMI_CMD_ComputeCRC(rec.data);
-    rec.datalen = rec.data[HMI_CMD_BYTE_LENGTH];
-    rec.retrycnt = 0;
-    cmdQueue->push(&rec);
-
-#if HMI_CMD_DEBUG
-    cmd_port->println("Response_Set_Station()");
-#endif
-    runtimedata.UpdateEEPROM = true;
-    return true;
-}
 bool HMI_Command::Response_ReadParameter()
 {
     uint8_t motornum = recdata[HMI_CMD_BYTE_DATA];
@@ -336,12 +303,12 @@ bool HMI_Command::Response_ReadParameter()
     rec.data[HMI_CMD_BYTE_HMIID] = maindata.HMI_ID;
     rec.data[HMI_CMD_BYTE_DATA] = recdata[HMI_CMD_BYTE_DATA];
     cmd_port->println("Motor num: " + String(motornum));
-    cmd_port->println("Frequence: " + String(Motor[motornum]->getFrequence()));
-    cmd_port->println("AccelerateTime: " + String(Motor[motornum]->getAccelerateTime()));
+    cmd_port->println("Frequence: " + String(maindata.MotorSpeed[motornum]));
+    cmd_port->println("AccelerateTime: " + String(maindata.MotorAccelerateTime[motornum]));
 	for(uint8_t i=1; i<3; i++)
-		rec.data[HMI_CMD_BYTE_DATA+i] = (Motor[motornum]->getFrequence() >> (2-i)*8)& 0xff;
+		rec.data[HMI_CMD_BYTE_DATA+i] = (maindata.MotorSpeed[motornum] >> (2-i)*8)& 0xff;
 	for(uint8_t i=3; i<5; i++)
-		rec.data[HMI_CMD_BYTE_DATA+i] = (Motor[motornum]->getAccelerateTime() >> (4-i)*8)& 0xff;
+		rec.data[HMI_CMD_BYTE_DATA+i] = (maindata.MotorAccelerateTime[motornum] >> (4-i)*8)& 0xff;
     rec.data[rec.data[HMI_CMD_BYTE_LENGTH]-1] = HMI_CMD_ComputeCRC(rec.data);
     rec.datalen = rec.data[HMI_CMD_BYTE_LENGTH];
     rec.retrycnt = 0;
@@ -350,36 +317,42 @@ bool HMI_Command::Response_ReadParameter()
 #if HMI_CMD_DEBUG
     cmd_port->println("Response_ReadParameter()");
 #endif
-    
     return true;
 }
 bool HMI_Command::Response_WriteParameter()
 {
     uint8_t motornum = recdata[HMI_CMD_BYTE_DATA];
     long freq = 0, acceleration = 0;
-    
-    for(uint8_t i=1; i<3; i++)
-    {
-        freq <<= 8;
-        freq += recdata[HMI_CMD_BYTE_DATA+i];
-    }
-    
-    for(uint8_t i=3; i<5; i++)
-    {
-        acceleration <<= 8;
-        acceleration += recdata[HMI_CMD_BYTE_DATA+i];
-    }
-    if(freq <= 1500) freq = 1500;
-    if(freq >= 10000) freq = 10000;
-    if(acceleration <= 300) acceleration = 300;
-    if(acceleration >= 5000) acceleration = 5000;
+    uint8_t result = 0x00;
     cmd_port->println("Motor num: " + String(motornum));
-    cmd_port->println("freq: " + String(freq));
-    cmd_port->println("acceleration: " + String(acceleration));
-    if(motornum > 1 || motornum < 0) return false;
+    if(motornum == MOTOR_X){
+        for(uint8_t i=1; i<3; i++)
+        {
+            freq <<= 8;
+            freq += recdata[HMI_CMD_BYTE_DATA+i];
+        }
+        cmd_port->println("freq: " + String(freq));
+        if(freq < MOTOR_SPEED_MIN || freq > MOTOR_SPEED_MAX)
+            result = 0x01;
+        else{
+            maindata.MotorSpeed[motornum] = freq;
+            Motor[motornum]->setFrequence(freq);
+        }
+        for(uint8_t i=3; i<5; i++)
+        {
+            acceleration <<= 8;
+            acceleration += recdata[HMI_CMD_BYTE_DATA+i];
+        }
+        cmd_port->println("acceleration: " + String(acceleration));
+        if(acceleration < 0 || acceleration > 5000)
+            result = 0x01;
+        else{
+            maindata.MotorAccelerateTime[motornum] = acceleration;
+            Motor[motornum]->setAccelerateTime(acceleration);
+        }
+    }
     else{
-        maindata.MotorSpeed[motornum] = freq;
-        maindata.MotorAccelerateTime[motornum] = acceleration;
+        result = 0x01;
     }
     uint8_t i;
     HMICmdRec rec;
@@ -388,7 +361,7 @@ bool HMI_Command::Response_WriteParameter()
     rec.data[HMI_CMD_BYTE_LENGTH] = HMI_CMD_LEN_BASE + 1;
     rec.data[HMI_CMD_BYTE_CMDID] = HMI_CMD_WRITE_PARAMETER;
     rec.data[HMI_CMD_BYTE_HMIID] = maindata.HMI_ID;
-    rec.data[HMI_CMD_BYTE_DATA] = 0x00; //success.
+    rec.data[HMI_CMD_BYTE_DATA] = result; //success.
     rec.data[rec.data[HMI_CMD_BYTE_LENGTH]-1] = HMI_CMD_ComputeCRC(rec.data);
     rec.datalen = rec.data[HMI_CMD_BYTE_LENGTH];
     rec.retrycnt = 0;
@@ -403,8 +376,6 @@ bool HMI_Command::Response_WriteParameter()
 
 bool HMI_Command::Response_Motor_Stop()
 {
-    //所有馬達停止運轉
-    
     uint8_t i;
     HMICmdRec rec;
     rec.datatype = QUEUE_DATA_TYPE_RESPONSE;
@@ -420,61 +391,38 @@ bool HMI_Command::Response_Motor_Stop()
 #if HMI_CMD_DEBUG
     cmd_port->println("Response_Motor_Stop()");
 #endif
-    Motor[MOTOR_SERVO]->Stop();
-    Motor[MOTOR_VR]->Stop();
-    runtimedata.RunMode[MOTOR_SERVO] = RUN_MODE_SERVO_STOP;
-    runtimedata.RunMode[MOTOR_VR] = RUN_MODE_VR_STOP;
-	for(i=0; i<WORKINDEX_TOTAL; i++)
-		runtimedata.Workindex[i] = 0;
-    for(i=0; i<WORKINDEX_TOTAL; i++)
-        runtimedata.preWorkindex[i] = -1;
+    runtimedata.RunMode = RUN_MODE_STOP;
     return true;
 }
 
 bool HMI_Command::Response_Control_Board_Status()
 {
     uint8_t motornum = recdata[HMI_CMD_BYTE_DATA];
-    
     uint8_t i;
     HMICmdRec rec;
     rec.datatype = QUEUE_DATA_TYPE_RESPONSE;
     rec.data[HMI_CMD_BYTE_TAGID] = ResponseTagID;
-    rec.data[HMI_CMD_BYTE_LENGTH] = HMI_CMD_LEN_BASE + 8;
+    rec.data[HMI_CMD_BYTE_LENGTH] = HMI_CMD_LEN_BASE;
     rec.data[HMI_CMD_BYTE_CMDID] = HMI_CMD_CONTROL_BOARD_STATUS;
     rec.data[HMI_CMD_BYTE_HMIID] = maindata.HMI_ID;
-    rec.data[HMI_CMD_BYTE_DATA] = motornum;
-    switch(motornum){
-        case MOTOR_SERVO:
-            if(Motor[motornum]->getState() == MOTOR_STATE_STOP 
-                && (runtimedata.Workindex[WORKINDEX_GO_HOME] == 0xEE || runtimedata.Workindex[WORKINDEX_SEARCH_SENSOR] == 0xEE))
-            {
-                rec.data[HMI_CMD_BYTE_DATA+1] = 0xEE; //Error.                
-            }
-            else{
-                if(Motor[motornum]->getState() == MOTOR_STATE_STOP)
-                    rec.data[HMI_CMD_BYTE_DATA+1] = 0x00; //status Motor stop.
-                else
-                    rec.data[HMI_CMD_BYTE_DATA+1] = 0x01; //status Motor is running.
-            }
-//            rec.data[HMI_CMD_BYTE_DATA+2] = runtimedata.Station;//到站後才會更新
-            rec.data[HMI_CMD_BYTE_DATA+2] = runtimedata.PositionInput;
-            cmd_port->println("PositionInput: " + String(runtimedata.PositionInput, BIN));
-            DEBUG("Pos:" + String(Motor[motornum]->getPosition()));
-            for(uint8_t i=0; i<4; i++)
-                rec.data[HMI_CMD_BYTE_DATA+3+i] = (Motor[motornum]->getPosition() >> (3-i)*8)& 0xff;
-            rec.data[HMI_CMD_BYTE_DATA + 7] = getStationSensor();
-            break;
-        case MOTOR_VR:
-            if(Motor[motornum]->getState() == MOTOR_STATE_STOP)
-                rec.data[HMI_CMD_BYTE_DATA+1] = 0x00; //status Motor stop.
-            else
-                rec.data[HMI_CMD_BYTE_DATA+1] = 0x01; //status Motor is running.
-            rec.data[HMI_CMD_BYTE_DATA+2] = 0x00;
-            DEBUG("Pos:" + String(Motor[motornum]->getPosition()));
-            for(uint8_t i=0; i<4; i++)
-                rec.data[HMI_CMD_BYTE_DATA+3+i] = (Motor[motornum]->getPosition() >> (3-i)*8)& 0xff;
-            break;
+    if(motornum == MOTOR_X)
+    {
+        if(Motor[motornum]->getState() == MOTOR_STATE_STOP)
+            rec.data[HMI_CMD_BYTE_DATA+1] = 0x00; //status Motor stop.
+        else
+            rec.data[HMI_CMD_BYTE_DATA+1] = 0x01; //status Motor is running.
+        rec.data[HMI_CMD_BYTE_DATA+2] = runtimedata.PositionInput;
+        cmd_port->println("PositionInput: " + String(runtimedata.PositionInput, BIN));
+        DEBUG("Pos:" + String(Motor[motornum]->getPosition()));
+        for(uint8_t i=0; i<4; i++)
+            rec.data[HMI_CMD_BYTE_DATA+3+i] = (Motor[motornum]->getPosition() >> (3-i)*8)& 0xff;
     }
+    else
+    {
+        DEBUG("Wrong motor num.");
+        return false;
+    }
+    rec.data[HMI_CMD_BYTE_DATA] = 0x00; //status normal.
     rec.data[rec.data[HMI_CMD_BYTE_LENGTH]-1] = HMI_CMD_ComputeCRC(rec.data);
     rec.datalen = rec.data[HMI_CMD_BYTE_LENGTH];
     rec.retrycnt = 0;
@@ -580,28 +528,21 @@ bool HMI_Command::Response_Set_DO_State()
     uint8_t i, bytei;
     HMICmdRec rec;
     rec.datatype = QUEUE_DATA_TYPE_RESPONSE;
+    
+    uint8_t datalen = recdata[HMI_CMD_BYTE_LENGTH] - HMI_CMD_LEN_BASE;
 #if HMI_CMD_DEBUG
-    cmd_port->print("Set DO: ");
-    cmd_port->print(recdata[HMI_CMD_BYTE_DATA]);
-    cmd_port->print("-->");    
+    cmd_port->println("Set DO: ");
 #endif
-    if(recdata[HMI_CMD_BYTE_DATA + 1] > 0){
-        cmd_port->println("HIGH");
-        digitalWrite(OutputPin[recdata[HMI_CMD_BYTE_DATA]], HIGH);
-        if(recdata[HMI_CMD_BYTE_DATA] >= 0 && recdata[HMI_CMD_BYTE_DATA] < 8){
-            runtimedata.UpdateEEPROM = true;
-            maindata.Output_Last_HighLow[recdata[HMI_CMD_BYTE_DATA]] = true;
+    for(bytei=0; bytei<datalen; bytei++)
+    {
+#if HMI_CMD_DEBUG
+        cmd_port->println("Set Output(" +String(i) + "): " + String(recdata[HMI_CMD_BYTE_DATA + bytei],HEX) + " ");
+#endif
+        for(i=0; i<8; i++)
+        {
+            setOutput(bytei*8+i, bitRead(recdata[HMI_CMD_BYTE_DATA + bytei], i));
         }
-    }
-    else{
-        cmd_port->println("LOW");
-        digitalWrite(OutputPin[recdata[HMI_CMD_BYTE_DATA]], LOW);
-        if(recdata[HMI_CMD_BYTE_DATA] >= 0 && recdata[HMI_CMD_BYTE_DATA] < 8){
-            runtimedata.UpdateEEPROM = true;
-            maindata.Output_Last_HighLow[recdata[HMI_CMD_BYTE_DATA]] = false;
-        }
-    }
-
+    }    
     rec.data[HMI_CMD_BYTE_TAGID] = ResponseTagID;
     rec.data[HMI_CMD_BYTE_LENGTH] = HMI_CMD_LEN_BASE;
     rec.data[HMI_CMD_BYTE_CMDID] = HMI_CMD_SET_DO;
@@ -618,7 +559,6 @@ bool HMI_Command::Response_Motor_Move()
     uint8_t movetype = recdata[HMI_CMD_BYTE_DATA];
     uint8_t motornum = recdata[HMI_CMD_BYTE_DATA+1];
     long step = 0;
-    
     for(uint8_t i=2; i<6; i++)
     {
         step <<= 8;
@@ -627,7 +567,9 @@ bool HMI_Command::Response_Motor_Move()
     cmd_port->println("Move type: " + String(movetype));
     cmd_port->println("Motor num: " + String(motornum));
     cmd_port->println("step: " + String(step));
-    
+    if(runtimedata.RunMode != RUN_MODE_NORMAL){
+        return 0;
+    }
     uint8_t i;
     HMICmdRec rec;
     rec.datatype = QUEUE_DATA_TYPE_RESPONSE;
@@ -643,18 +585,17 @@ bool HMI_Command::Response_Motor_Move()
 #if HMI_CMD_DEBUG
     cmd_port->println("Response_Motor_Move()");
 #endif
-    if(Motor[motornum]->getState() == MOTOR_STATE_STOP)
-    {
-        if(movetype == 0x00)//相對位置移動
-        {
-            Motor[motornum]->Steps(step, Motor[motornum]->getFrequence());
-        }
-        else if(movetype == 0x01)//絕對位置移動
-        {
-            if(motornum == MOTOR_VR)
-                maindata.VR_HomeOffset = step;
-            Motor[motornum]->MoveTo(step, Motor[motornum]->getFrequence());
-        }
+    if(movetype == 0x00){        
+        if(Motor[motornum]->getAccelerateTime() <= 200)
+            Motor[motornum]->setAccelerateTime(maindata.MotorAccelerateTime[motornum]);
+        Motor[motornum]->Steps(step, maindata.MotorSpeed[motornum]);
+    }
+    else if(movetype == 0x01){
+        if(Motor[motornum]->getAccelerateTime() <= 200)
+            Motor[motornum]->setAccelerateTime(maindata.MotorAccelerateTime[motornum]);
+        Motor[motornum]->MoveTo(step, maindata.MotorSpeed[motornum]);
+        maindata.TargetPosition = step;
+        runtimedata.UpdateEEPROM = true;
     }
     return true;
 }
@@ -685,7 +626,6 @@ bool HMI_Command::Indication_Emergency()
     HMICmdRec rec;
 //    rec.datatype = QUEUE_DATA_TYPE_INDICATION;
 //    rec.data[HMI_CMD_BYTE_TAGID] = RequestTagID;
-    //改成
     rec.datatype = QUEUE_DATA_TYPE_RESPONSE;
     rec.data[HMI_CMD_BYTE_TAGID] = ResponseTagID;
     rec.data[HMI_CMD_BYTE_LENGTH] = HMI_CMD_LEN_BASE;
@@ -695,50 +635,8 @@ bool HMI_Command::Indication_Emergency()
     rec.datalen = rec.data[HMI_CMD_BYTE_LENGTH];
     rec.retrycnt = 0;
     cmdQueue->push(&rec);
-
 #if HMI_CMD_DEBUG
     cmd_port->println("Indication_Emergency()");
-#endif
-    return true;
-}
-
-bool HMI_Command::Response_VR_Home_Offset()
-{
-    uint8_t motornum = recdata[HMI_CMD_BYTE_DATA];
-    long step = 0;
-    
-    for(uint8_t i=1; i<5; i++)
-    {
-        step <<= 8;
-        step += recdata[HMI_CMD_BYTE_DATA+i];
-    }
-    cmd_port->println("Motor num: " + String(motornum));
-    maindata.VR_HomeOffset = step;
-    DEBUG("VR_HomeOffset: " + String(maindata.VR_HomeOffset));
-    if(motornum == MOTOR_VR){
-        if(Motor[motornum]->getState() == MOTOR_STATE_STOP){
-            runtimedata.RunMode[MOTOR_VR] = RUN_MODE_VR_INIT;
-            runtimedata.Workindex[WORKINDEX_VR_INITIAL] = 0;
-            runtimedata.Workindex[WORKINDEX_VR_GO_HOME] = 0;
-        }
-    }
-    else{
-        return false;
-    }
-    uint8_t i;
-    HMICmdRec rec;
-    rec.datatype = QUEUE_DATA_TYPE_RESPONSE;
-    rec.data[HMI_CMD_BYTE_TAGID] = ResponseTagID;
-    rec.data[HMI_CMD_BYTE_LENGTH] = HMI_CMD_LEN_BASE;
-    rec.data[HMI_CMD_BYTE_CMDID] = HMI_CMD_VR_HOME_OFFSET;
-    rec.data[HMI_CMD_BYTE_HMIID] = maindata.HMI_ID;
-    rec.data[rec.data[HMI_CMD_BYTE_LENGTH]-1] = HMI_CMD_ComputeCRC(rec.data);
-    rec.datalen = rec.data[HMI_CMD_BYTE_LENGTH];
-    rec.retrycnt = 0;
-    cmdQueue->push(&rec);
-
-#if HMI_CMD_DEBUG
-    cmd_port->println("Response_VR_Home_Offset()");
 #endif
     return true;
 }
@@ -746,29 +644,15 @@ bool HMI_Command::Response_VR_Home_Offset()
 bool HMI_Command::Response_Motor_Search_Home()
 {
     uint8_t motornum = recdata[HMI_CMD_BYTE_DATA];
-
-    if(Motor[MOTOR_SERVO]->getState() == MOTOR_STATE_STOP)    
-    {
-        if(runtimedata.RunMode[MOTOR_SERVO] == RUN_MODE_SERVO_NORMAL 
-            || runtimedata.Workindex[WORKINDEX_GO_HOME] == 0xEE 
-            || runtimedata.Workindex[WORKINDEX_SEARCH_SENSOR] == 0xEE)
-        {
-            if(motornum == MOTOR_SERVO)
-            {
-                DEBUG("Need to Search home.");
-                runtimedata.RunMode[MOTOR_SERVO] = RUN_MODE_SERVO_INIT;
-                runtimedata.Workindex[WORKINDEX_SERVO_INITIAL] = 0;
-                runtimedata.Workindex[WORKINDEX_GO_HOME] = 0;
-                runtimedata.Workindex[WORKINDEX_SEARCH_SENSOR] = 0;
-            }
-            else return false;
-        }
-        else return false;
+    if(motornum == MOTOR_X){
+        runtimedata.RunMode = RUN_MODE_GO_HOME;
+        runtimedata.Workindex[WORKINDEX_GO_HOME] = 0;
     }
-    else{
+    else
+    {
+        DEBUG("Wrong motor num.");
         return false;
     }
-        
     uint8_t i;
     HMICmdRec rec;
     rec.datatype = QUEUE_DATA_TYPE_RESPONSE;
@@ -786,50 +670,6 @@ bool HMI_Command::Response_Motor_Search_Home()
 #endif
     return true;
 }
-
-bool HMI_Command::Response_Motor_StopPin_Offset()
-{
-    uint8_t station= recdata[HMI_CMD_BYTE_DATA];
-    long step = 0;
-    for(uint8_t i=0; i<4; i++)
-    {
-        step <<= 8;
-        step += recdata[HMI_CMD_BYTE_DATA+1+i];
-    }
-    switch(station)
-    {
-        case 0:
-        case 1:
-        case 2:
-        case 3:
-            maindata.StopPinOffset[station] = step;
-            DEBUG("StopPinOffset " + String(station) + ": " + String(maindata.StopPinOffset[station]));
-            break;
-        default:
-            return 0;
-            break;
-    }
-//    maindata.OffsetDistanceOfStopPin = step;
-//    DEBUG("OffsetDistanceOfStopPin: " + String(maindata.OffsetDistanceOfStopPin));
-
-    HMICmdRec rec;
-    rec.datatype = QUEUE_DATA_TYPE_RESPONSE;
-    rec.data[HMI_CMD_BYTE_TAGID] = ResponseTagID;
-    rec.data[HMI_CMD_BYTE_LENGTH] = HMI_CMD_LEN_BASE;
-    rec.data[HMI_CMD_BYTE_CMDID] = HMI_CMD_MOTOR_STOP_PIN_OFFSET;
-    rec.data[HMI_CMD_BYTE_HMIID] = maindata.HMI_ID;
-    rec.data[rec.data[HMI_CMD_BYTE_LENGTH]-1] = HMI_CMD_ComputeCRC(rec.data);
-    rec.datalen = rec.data[HMI_CMD_BYTE_LENGTH];
-    rec.retrycnt = 0;
-    cmdQueue->push(&rec);
-
-#if HMI_CMD_DEBUG
-    cmd_port->println("Response_Motor_StopPin_Offset()");
-#endif
-    runtimedata.UpdateEEPROM = true;
-    return true;
-}
-
 
 uint8_t HMI_Command::CheckReciveData()
 {
@@ -901,10 +741,6 @@ uint8_t HMI_Command::CheckReciveData()
 					cmd_port->println("HMI_CMD_PING.");
 					issupportcmd = Response_Ping();
 					break;
-                case HMI_CMD_SET_STATION:
-                    cmd_port->println("HMI_CMD_SET_STATION.");
-                    issupportcmd = Response_Set_Station();
-                    break;
                 case HMI_CMD_READ_PARAMETER:
                     cmd_port->println("HMI_CMD_READ_PARAMETER.");
                     issupportcmd = Response_ReadParameter();
@@ -941,17 +777,9 @@ uint8_t HMI_Command::CheckReciveData()
                     cmd_port->println("HMI_CMD_EMERGENCY_INDICATION.");
                     runtimedata.IndicationEmergency = false;
                     break;
-                case HMI_CMD_VR_HOME_OFFSET:
-                    cmd_port->println("HMI_CMD_VR_HOME_OFFSET.");
-                    issupportcmd = Response_VR_Home_Offset();
-                    break;
-                case HMI_CMD_MOTOR_SEARCH_HOME:                    
+                case HMI_CMD_MOTOR_SEARCH_HOME:
                     cmd_port->println("HMI_CMD_MOTOR_SEARCH_HOME.");
                     issupportcmd = Response_Motor_Search_Home();
-                    break;
-                case HMI_CMD_MOTOR_STOP_PIN_OFFSET:
-                    cmd_port->println("HMI_CMD_MOTOR_STOP_PIN_OFFSET.");
-                    issupportcmd = Response_Motor_StopPin_Offset();
                     break;
 			}
 			if(issupportcmd)

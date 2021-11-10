@@ -789,28 +789,14 @@ bool HMI_Command::Response_Motor_Search_Home()
 
 bool HMI_Command::Response_Motor_StopPin_Offset()
 {
-    uint8_t station= recdata[HMI_CMD_BYTE_DATA];
     long step = 0;
     for(uint8_t i=0; i<4; i++)
     {
         step <<= 8;
-        step += recdata[HMI_CMD_BYTE_DATA+1+i];
+        step += recdata[HMI_CMD_BYTE_DATA+i];
     }
-    switch(station)
-    {
-        case 0:
-        case 1:
-        case 2:
-        case 3:
-            maindata.StopPinOffset[station] = step;
-            DEBUG("StopPinOffset " + String(station) + ": " + String(maindata.StopPinOffset[station]));
-            break;
-        default:
-            return 0;
-            break;
-    }
-//    maindata.OffsetDistanceOfStopPin = step;
-//    DEBUG("OffsetDistanceOfStopPin: " + String(maindata.OffsetDistanceOfStopPin));
+    maindata.OffsetDistanceOfStopPin = step;
+    DEBUG("OffsetDistanceOfStopPin: " + String(maindata.OffsetDistanceOfStopPin));
 
     HMICmdRec rec;
     rec.datatype = QUEUE_DATA_TYPE_RESPONSE;

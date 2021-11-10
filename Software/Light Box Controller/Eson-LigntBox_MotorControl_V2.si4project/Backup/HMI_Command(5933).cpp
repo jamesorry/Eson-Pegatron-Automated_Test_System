@@ -801,7 +801,6 @@ bool HMI_Command::Response_Motor_StopPin_Offset()
         case 0:
         case 1:
         case 2:
-        case 3:
             maindata.StopPinOffset[station] = step;
             DEBUG("StopPinOffset " + String(station) + ": " + String(maindata.StopPinOffset[station]));
             break;

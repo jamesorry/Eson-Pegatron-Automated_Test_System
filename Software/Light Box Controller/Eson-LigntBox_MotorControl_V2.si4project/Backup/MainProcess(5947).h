@@ -75,7 +75,6 @@ typedef struct _MainDataStruct_
     bool        Output_Last_HighLow[8];
     uint32_t    CheckVersion;
     long        VR_HomeOffset;
-    long        StopPinOffset[4];
 }MainDataStruct;
 
 

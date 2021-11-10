@@ -42,7 +42,6 @@ CMD g_cmdFunc[] = {
     {"Position", cmdgetsetPosition},
     {"search", cmdSearchSensor},
     {"offset", cmd_Offset},
-    {"StopPinOffset", cmd_StopPinOffset},
 	{"?", showHelp}
 };
 
@@ -110,30 +109,25 @@ long        VR_HomeOffset;
 #endif
 void cmd_Maindata(void)
 {
-    uint8_t i;
     READ_EEPROM();
     cmd_port->println("HMI_ID:" + String(maindata.HMI_ID));
-    for(i=0; i<MOTOR_TOTAL; i++){
+    for(uint8_t i=0; i<MOTOR_TOTAL; i++){
         cmd_port->println("Speed " +String(i) + ":" + String(maindata.MotorSpeed[i]));
         cmd_port->println("FrequenceStart " +String(i) + ":" + String(maindata.MotorFrequenceStart[i]));
         cmd_port->println("AccelerateTime " +String(i) + ":" + String(maindata.MotorAccelerateTime[i]));        
     }
-    for(i=0; i<3; i++){
+    for(uint8_t i=0; i<3; i++){
         cmd_port->println("StationPosition " +String(i) + ":" + String(maindata.StationPosition[i]));        
     }
     cmd_port->println("OffsetDistanceOfStopPin: " + String(maindata.OffsetDistanceOfStopPin));
     cmd_port->println("TargetStation: " + String(maindata.TargetStation));
     cmd_port->print("Output_Last_HighLow: ");
-    for(i=0; i<8; i++){
+    for(uint8_t i=0; i<8; i++){
         cmd_port->print(maindata.Output_Last_HighLow[i]);
         cmd_port->print(", ");
     }cmd_port->println("");
     cmd_port->println("CheckVersion: " + String(maindata.CheckVersion));
     cmd_port->println("VR_HomeOffset: " + String(maindata.VR_HomeOffset));
-    
-    for(i=0; i<4; i++){
-        cmd_port->println("StopPinOffset " +String(i) + ":" + String(maindata.StopPinOffset[i]));        
-    }
 }
 void cmd_UpdateEEPROM(void)
 {
@@ -685,43 +679,6 @@ void cmd_Offset(void)
         maindata.VR_HomeOffset = offset;
         DEBUG("VR_HomeOffset: " + String(maindata.VR_HomeOffset));
         runtimedata.UpdateEEPROM = true;
-    }
-}
-
-void cmd_StopPinOffset(void)
-{
-    String arg1, arg2;
-	int station,step;
-	getNextArg(arg1);
-	if( (arg1.length()==0))
-	{
-	    cmd_port->println("Now StopPinOffset:");
-        for(uint8_t i=0; i<4; i++){
-            cmd_port->println("StopPinOffset " +String(i) + ":" + String(maindata.StopPinOffset[i]));        
-        }
-	    cmd_port->println("Please input station 0~3.");
-	  return;
-	}
-    station = arg1.toInt();
-    getNextArg(arg2);
-	if( (arg2.length()==0))
-	{
-        return;
-	}
-    step = arg2.toInt();
-    switch(station)
-    {
-        case 0:
-        case 1:
-        case 2:
-        case 3:
-            maindata.StopPinOffset[station] = step;
-            cmd_port->println("StopPinOffset " + String(station) + ": " + String(maindata.StopPinOffset[station]));
-            runtimedata.UpdateEEPROM = true;
-            break;
-        default:
-            return;
-            break;
     }
 }
 

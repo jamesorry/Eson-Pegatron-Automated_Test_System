@@ -10,7 +10,7 @@
 #define SPEED_SEARCH_SENSOR 1500
 
 #define	EXTIO_NUM		0
-#define	INPUT_8_NUMBER	2
+#define	INPUT_8_NUMBER	1
 #define OUTPUT_8_NUMBER	1
 
 #define	OUTPUT_NONE_ACTIVE	0
@@ -75,6 +75,7 @@ typedef struct _RuntimeStruct_
 
 void MainProcess_Timer();
 void MainProcess_Task();
+
 void MainProcess_Init();
 void setOutput(uint8_t index, uint8_t hl);
 uint8_t getInput(uint8_t index);

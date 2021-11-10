@@ -131,7 +131,7 @@ void cmd_Maindata(void)
     cmd_port->println("CheckVersion: " + String(maindata.CheckVersion));
     cmd_port->println("VR_HomeOffset: " + String(maindata.VR_HomeOffset));
     
-    for(i=0; i<4; i++){
+    for(i=0; i<3; i++){
         cmd_port->println("StopPinOffset " +String(i) + ":" + String(maindata.StopPinOffset[i]));        
     }
 }
@@ -696,10 +696,10 @@ void cmd_StopPinOffset(void)
 	if( (arg1.length()==0))
 	{
 	    cmd_port->println("Now StopPinOffset:");
-        for(uint8_t i=0; i<4; i++){
+        for(uint8_t i=0; i<3; i++){
             cmd_port->println("StopPinOffset " +String(i) + ":" + String(maindata.StopPinOffset[i]));        
         }
-	    cmd_port->println("Please input station 0~3.");
+	    cmd_port->println("Please input station 0~2.");
 	  return;
 	}
     station = arg1.toInt();
@@ -714,7 +714,6 @@ void cmd_StopPinOffset(void)
         case 0:
         case 1:
         case 2:
-        case 3:
             maindata.StopPinOffset[station] = step;
             cmd_port->println("StopPinOffset " + String(station) + ": " + String(maindata.StopPinOffset[station]));
             runtimedata.UpdateEEPROM = true;

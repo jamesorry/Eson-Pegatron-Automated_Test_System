@@ -4,7 +4,7 @@
 #include "Arduino.h"
 #include "SoftwareSerial.h"
 
-#define	VERSTR	"2021111002"
+#define	VERSTR	"2021101501"
 
 #define DEBUG(...) Serial.print(", @ [FUNCTION]: "); \
                    Serial.print(__func__); \
