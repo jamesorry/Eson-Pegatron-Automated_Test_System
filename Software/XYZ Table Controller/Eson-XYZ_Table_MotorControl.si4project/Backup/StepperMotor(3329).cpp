@@ -373,7 +373,7 @@ unsigned int StepperMotor::MoveTo(long targetpositon)
 
 unsigned int StepperMotor::MoveTo(long targetpositon, long frequence)
 {
-#if STEPPER_MOTOR_DEBUG
+#if 0//STEPPER_MOTOR_DEBUG
 	cmd_port->println("MoveTo: " + String(targetpositon));
 #endif
 	unsigned int result = 0;

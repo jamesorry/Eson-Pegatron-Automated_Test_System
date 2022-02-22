@@ -297,7 +297,6 @@ void MainProcess_Task()
         case RUN_MODE_INIT://移動到上次記憶位置
             if(MotorInit()){
                 runtimedata.RunMode = RUN_MODE_NORMAL;
-                runtimedata.Pre_Motor_Rotate = Motor[MOTOR_X]->getDirection();
             }
             break;
         case RUN_MODE_NORMAL:

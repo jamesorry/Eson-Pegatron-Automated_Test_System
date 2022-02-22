@@ -6,7 +6,7 @@
 
 #define MOTOR_X             0
 #define MOTOR_TOTAL         1
-#define SPEED_GO_HOME       2000
+#define SPEED_GO_HOME       4000
 #define SPEED_SEARCH_SENSOR 1500
 
 #define	EXTIO_NUM		0
@@ -69,7 +69,6 @@ typedef struct _RuntimeStruct_
     uint16_t    PositionInput = 0x00;
     bool        IndicationEmergency = false;
     bool        NeedRestart = false;
-    bool        Pre_Motor_Rotate;
 }RuntimeStatus;
 
 #define MOTOR_SPEED_NORMAL		    1500

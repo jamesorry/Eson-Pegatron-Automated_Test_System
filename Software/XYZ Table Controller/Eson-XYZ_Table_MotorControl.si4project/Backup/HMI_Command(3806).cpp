@@ -598,17 +598,7 @@ bool HMI_Command::Response_Motor_Move()
         if(Motor[motornum]->getAccelerateTime() <= 200)
             Motor[motornum]->setAccelerateTime(maindata.MotorAccelerateTime[motornum]);
         Motor[motornum]->MoveTo(step, maindata.MotorSpeed[motornum]);
-        //處理皮帶間隙
-        if(runtimedata.Pre_Motor_Rotate != Motor[MOTOR_X]->getDirection())
-        {
-            if(Motor[MOTOR_X]->getDirection() == MOTOR_CCW)
-                step -= 35;
-            else 
-                step += 35;
-        }
-        Motor[motornum]->MoveTo(step, maindata.MotorSpeed[motornum]);
         maindata.TargetPosition = step;
-        runtimedata.Pre_Motor_Rotate = Motor[MOTOR_X]->getDirection();
         runtimedata.UpdateEEPROM = true;
     }
     return true;
